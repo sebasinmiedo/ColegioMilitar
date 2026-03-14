@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ColegioMilitar.Application/ColegioMilitar.Application.csproj" />
+    <Project Path="src/ColegioMilitar.Domain/ColegioMilitar.Domain.csproj" />
+    <Project Path="src/ColegioMilitar.Infrastructure/ColegioMilitar.Infrastructure.csproj" />
+    <Project Path="src/ColegioMilitar.Reports/ColegioMilitar.Reports.csproj" />
+    <Project Path="src/ColegioMilitar.UI/ColegioMilitar.UI.csproj" />
+  </Folder>
+</Solution>
