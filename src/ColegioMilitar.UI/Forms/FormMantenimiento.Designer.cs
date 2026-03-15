@@ -11,30 +11,62 @@ partial class FormMantenimiento
 
     private void InitializeComponent()
     {
-        lblTitulo             = new Label();
-        tabControl            = new TabControl();
-        tabCadetes            = new TabPage();
-        tabSupervisores       = new TabPage();
-        tabCastigos           = new TabPage();
-        pnlToolCadetes        = new Panel();
-        btnCargarCsv3         = new Button();
-        btnCargarCsv4         = new Button();
-        btnCargarCsv5         = new Button();
-        lblEstadoCadetes      = new Label();
-        dgvCadetes            = new DataGridView();
-        pnlToolSupervisores   = new Panel();
+        lblTitulo               = new Label();
+        tabControl              = new TabControl();
+        tabCadetes3             = new TabPage();
+        tabCadetes4             = new TabPage();
+        tabCadetes5             = new TabPage();
+        tabSupervisores         = new TabPage();
+        tabCastigos             = new TabPage();
+
+        // Cadetes 3
+        pnlTool3                = new Panel();
+        btnCargarCsv3           = new Button();
+        btnEditarCadetes3       = new Button();
+        btnGuardarCadetes3      = new Button();
+        btnCancelarCadetes3     = new Button();
+        lblEstadoCadetes3       = new Label();
+        dgvCadetes3             = new DataGridView();
+
+        // Cadetes 4
+        pnlTool4                = new Panel();
+        btnCargarCsv4           = new Button();
+        btnEditarCadetes4       = new Button();
+        btnGuardarCadetes4      = new Button();
+        btnCancelarCadetes4     = new Button();
+        lblEstadoCadetes4       = new Label();
+        dgvCadetes4             = new DataGridView();
+
+        // Cadetes 5
+        pnlTool5                = new Panel();
+        btnCargarCsv5           = new Button();
+        btnEditarCadetes5       = new Button();
+        btnGuardarCadetes5      = new Button();
+        btnCancelarCadetes5     = new Button();
+        lblEstadoCadetes5       = new Label();
+        dgvCadetes5             = new DataGridView();
+
+        // Supervisores
+        pnlToolSupervisores     = new Panel();
         btnCargarCsvSupervisores = new Button();
-        lblEstadoSupervisores = new Label();
-        dgvSupervisores       = new DataGridView();
-        pnlToolCastigos       = new Panel();
-        btnCargarCsvCastigos  = new Button();
-        lblEstadoCastigos     = new Label();
-        dgvCastigos           = new DataGridView();
+        btnEditarSupervisores   = new Button();
+        btnGuardarSupervisores  = new Button();
+        btnCancelarSupervisores = new Button();
+        lblEstadoSupervisores   = new Label();
+        dgvSupervisores         = new DataGridView();
+
+        // Castigos
+        pnlToolCastigos         = new Panel();
+        btnCargarCsvCastigos    = new Button();
+        btnEditarCastigos       = new Button();
+        btnGuardarCastigos      = new Button();
+        btnCancelarCastigos     = new Button();
+        lblEstadoCastigos       = new Label();
+        dgvCastigos             = new DataGridView();
 
         tabControl.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)dgvCadetes).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)dgvSupervisores).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)dgvCastigos).BeginInit();
+        foreach (var dgv in new[] { dgvCadetes3, dgvCadetes4, dgvCadetes5, dgvSupervisores, dgvCastigos })
+            ((System.ComponentModel.ISupportInitialize)dgv).BeginInit();
         SuspendLayout();
 
         // Título
@@ -46,105 +78,53 @@ partial class FormMantenimiento
         lblTitulo.TextAlign = ContentAlignment.MiddleLeft;
         lblTitulo.Padding   = new Padding(8, 0, 0, 0);
 
-        // TabControl
         tabControl.Dock = DockStyle.Fill;
         tabControl.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-        tabControl.Controls.AddRange(new TabPage[] { tabCadetes, tabSupervisores, tabCastigos });
+        tabControl.Controls.AddRange(new TabPage[]
+            { tabCadetes3, tabCadetes4, tabCadetes5, tabSupervisores, tabCastigos });
 
-        // ── Tab Cadetes ──────────────────────────────────────────────────
-        tabCadetes.Text    = "  Cadetes  ";
-        tabCadetes.Padding = new Padding(4);
+        // Construir tabs cadetes
+        ConfigurarTabCadetes(tabCadetes3, "  3° AÑO  ", pnlTool3, dgvCadetes3,
+            btnCargarCsv3, "📂 CSV 3°", Color.FromArgb(30, 90, 160),
+            btnEditarCadetes3, btnGuardarCadetes3, btnCancelarCadetes3, lblEstadoCadetes3,
+            btnCargarCsv3_Click, btnEditarCadetes3_Click,
+            btnGuardarCadetes3_Click, btnCancelarCadetes3_Click);
 
-        pnlToolCadetes.Dock      = DockStyle.Top;
-        pnlToolCadetes.Height    = 82;
-        pnlToolCadetes.BackColor = Color.FromArgb(240, 243, 250);
+        ConfigurarTabCadetes(tabCadetes4, "  4° AÑO  ", pnlTool4, dgvCadetes4,
+            btnCargarCsv4, "📂 CSV 4°", Color.FromArgb(20, 110, 60),
+            btnEditarCadetes4, btnGuardarCadetes4, btnCancelarCadetes4, lblEstadoCadetes4,
+            btnCargarCsv4_Click, btnEditarCadetes4_Click,
+            btnGuardarCadetes4_Click, btnCancelarCadetes4_Click);
 
-        var lblInfo = new Label();
-        lblInfo.Text      = "Carga un CSV por año. Formato: N°, DNI, APELLIDOS Y NOMBRES, [DIVISION]";
-        lblInfo.Font      = new Font("Segoe UI", 8.5f);
-        lblInfo.ForeColor = Color.FromArgb(80, 80, 80);
-        lblInfo.Location  = new Point(8, 5);
-        lblInfo.Size      = new Size(700, 18);
+        ConfigurarTabCadetes(tabCadetes5, "  5° AÑO  ", pnlTool5, dgvCadetes5,
+            btnCargarCsv5, "📂 CSV 5°", Color.FromArgb(140, 70, 10),
+            btnEditarCadetes5, btnGuardarCadetes5, btnCancelarCadetes5, lblEstadoCadetes5,
+            btnCargarCsv5_Click, btnEditarCadetes5_Click,
+            btnGuardarCadetes5_Click, btnCancelarCadetes5_Click);
 
-        CrearBtnCsv(btnCargarCsv3, "📂  CSV 3° Año", 8,   Color.FromArgb(30, 90, 160));
-        CrearBtnCsv(btnCargarCsv4, "📂  CSV 4° Año", 168, Color.FromArgb(20, 110, 60));
-        CrearBtnCsv(btnCargarCsv5, "📂  CSV 5° Año", 328, Color.FromArgb(140, 70, 10));
-
-        btnCargarCsv3.Click += btnCargarCsv3_Click;
-        btnCargarCsv4.Click += btnCargarCsv4_Click;
-        btnCargarCsv5.Click += btnCargarCsv5_Click;
-
-        lblEstadoCadetes.Location  = new Point(8, 58);
-        lblEstadoCadetes.Size      = new Size(800, 18);
-        lblEstadoCadetes.Font      = new Font("Segoe UI", 9);
-
-        pnlToolCadetes.Controls.AddRange(new Control[]
-            { lblInfo, btnCargarCsv3, btnCargarCsv4, btnCargarCsv5, lblEstadoCadetes });
-
-        ConfigurarDgv(dgvCadetes);
-        dgvCadetes.Dock = DockStyle.Fill;
-        tabCadetes.Controls.Add(dgvCadetes);
-        tabCadetes.Controls.Add(pnlToolCadetes);
-
-        // ── Tab Supervisores ─────────────────────────────────────────────
+        // Tab Supervisores
         tabSupervisores.Text    = "  Supervisores  ";
         tabSupervisores.Padding = new Padding(4);
-
-        pnlToolSupervisores.Dock      = DockStyle.Top;
-        pnlToolSupervisores.Height    = 46;
-        pnlToolSupervisores.BackColor = Color.FromArgb(240, 243, 250);
-
-        btnCargarCsvSupervisores.Text      = "📂  Cargar CSV de Supervisores";
-        btnCargarCsvSupervisores.Location  = new Point(8, 7);
-        btnCargarCsvSupervisores.Size      = new Size(240, 30);
-        btnCargarCsvSupervisores.Font      = new Font("Segoe UI", 9, FontStyle.Bold);
-        btnCargarCsvSupervisores.BackColor = Color.FromArgb(30, 60, 120);
-        btnCargarCsvSupervisores.ForeColor = Color.White;
-        btnCargarCsvSupervisores.FlatStyle = FlatStyle.Flat;
-        btnCargarCsvSupervisores.FlatAppearance.BorderSize = 0;
-        btnCargarCsvSupervisores.Cursor    = Cursors.Hand;
-        btnCargarCsvSupervisores.Click    += btnCargarCsvSupervisores_Click;
-
-        lblEstadoSupervisores.Location = new Point(258, 12);
-        lblEstadoSupervisores.Size     = new Size(500, 20);
-        lblEstadoSupervisores.Font     = new Font("Segoe UI", 9);
-        lblEstadoSupervisores.Text     = "Formato: GRADO, APELLIDOS Y NOMBRES, DNI";
-
-        pnlToolSupervisores.Controls.AddRange(new Control[]
-            { btnCargarCsvSupervisores, lblEstadoSupervisores });
-
+        ConfigurarToolPanel(pnlToolSupervisores,
+            btnCargarCsvSupervisores, "📂 CSV Supervisores", Color.FromArgb(30, 60, 120),
+            btnEditarSupervisores, btnGuardarSupervisores, btnCancelarSupervisores,
+            lblEstadoSupervisores, "Formato: GRADO;APELLIDOS Y NOMBRES;DNI",
+            btnCargarCsvSupervisores_Click, btnEditarSupervisores_Click,
+            btnGuardarSupervisores_Click, btnCancelarSupervisores_Click);
         ConfigurarDgv(dgvSupervisores);
         dgvSupervisores.Dock = DockStyle.Fill;
         tabSupervisores.Controls.Add(dgvSupervisores);
         tabSupervisores.Controls.Add(pnlToolSupervisores);
 
-        // ── Tab Castigos ─────────────────────────────────────────────────
+        // Tab Castigos
         tabCastigos.Text    = "  Castigos  ";
         tabCastigos.Padding = new Padding(4);
-
-        pnlToolCastigos.Dock      = DockStyle.Top;
-        pnlToolCastigos.Height    = 46;
-        pnlToolCastigos.BackColor = Color.FromArgb(240, 243, 250);
-
-        btnCargarCsvCastigos.Text      = "📂  Cargar CSV de Castigos";
-        btnCargarCsvCastigos.Location  = new Point(8, 7);
-        btnCargarCsvCastigos.Size      = new Size(215, 30);
-        btnCargarCsvCastigos.Font      = new Font("Segoe UI", 9, FontStyle.Bold);
-        btnCargarCsvCastigos.BackColor = Color.FromArgb(30, 60, 120);
-        btnCargarCsvCastigos.ForeColor = Color.White;
-        btnCargarCsvCastigos.FlatStyle = FlatStyle.Flat;
-        btnCargarCsvCastigos.FlatAppearance.BorderSize = 0;
-        btnCargarCsvCastigos.Cursor    = Cursors.Hand;
-        btnCargarCsvCastigos.Click    += btnCargarCsvCastigos_Click;
-
-        lblEstadoCastigos.Location = new Point(232, 12);
-        lblEstadoCastigos.Size     = new Size(650, 20);
-        lblEstadoCastigos.Font     = new Font("Segoe UI", 9);
-        lblEstadoCastigos.Text     = "Formato: CODIGO, CAD III, CAD IV, CAD V, reinc, NOTA, DESCRIPCION";
-
-        pnlToolCastigos.Controls.AddRange(new Control[]
-            { btnCargarCsvCastigos, lblEstadoCastigos });
-
+        ConfigurarToolPanel(pnlToolCastigos,
+            btnCargarCsvCastigos, "📂 CSV Castigos", Color.FromArgb(30, 60, 120),
+            btnEditarCastigos, btnGuardarCastigos, btnCancelarCastigos,
+            lblEstadoCastigos, "Formato: CODIGO;CAD III;CAD IV;CAD V;reinc;NOTA;DESCRIPCION",
+            btnCargarCsvCastigos_Click, btnEditarCastigos_Click,
+            btnGuardarCastigos_Click, btnCancelarCastigos_Click);
         ConfigurarDgv(dgvCastigos);
         dgvCastigos.Dock = DockStyle.Fill;
         tabCastigos.Controls.Add(dgvCastigos);
@@ -153,8 +133,8 @@ partial class FormMantenimiento
         // Form
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode       = AutoScaleMode.Font;
-        ClientSize          = new Size(1000, 620);
-        MinimumSize         = new Size(800, 500);
+        ClientSize          = new Size(1050, 660);
+        MinimumSize         = new Size(900, 550);
         Text                = "Mantenimiento — Colegio Militar";
         Font                = new Font("Segoe UI", 9F);
         StartPosition       = FormStartPosition.CenterParent;
@@ -164,18 +144,66 @@ partial class FormMantenimiento
         Controls.Add(lblTitulo);
 
         tabControl.ResumeLayout(false);
-        ((System.ComponentModel.ISupportInitialize)dgvCadetes).EndInit();
-        ((System.ComponentModel.ISupportInitialize)dgvSupervisores).EndInit();
-        ((System.ComponentModel.ISupportInitialize)dgvCastigos).EndInit();
+        foreach (var dgv in new[] { dgvCadetes3, dgvCadetes4, dgvCadetes5, dgvSupervisores, dgvCastigos })
+            ((System.ComponentModel.ISupportInitialize)dgv).EndInit();
         ResumeLayout(false);
     }
 
-    private static void CrearBtnCsv(Button btn, string texto, int x, Color color)
+    private void ConfigurarTabCadetes(TabPage tab, string titulo, Panel pnlTool,
+        DataGridView dgv, Button btnCsv, string txtCsv, Color colorCsv,
+        Button btnEditar, Button btnGuardar, Button btnCancelar, Label lblEstado,
+        EventHandler hCsv, EventHandler hEditar, EventHandler hGuardar, EventHandler hCancelar)
+    {
+        tab.Text    = titulo;
+        tab.Padding = new Padding(4);
+        ConfigurarToolPanel(pnlTool, btnCsv, txtCsv, colorCsv,
+            btnEditar, btnGuardar, btnCancelar, lblEstado,
+            "Formato: N°;DNI;APELLIDOS Y NOMBRES;DIVISION",
+            hCsv, hEditar, hGuardar, hCancelar);
+        ConfigurarDgv(dgv);
+        dgv.Dock = DockStyle.Fill;
+        tab.Controls.Add(dgv);
+        tab.Controls.Add(pnlTool);
+    }
+
+    private static void ConfigurarToolPanel(Panel pnl,
+        Button btnCsv, string txtCsv, Color colorCsv,
+        Button btnEditar, Button btnGuardar, Button btnCancelar, Label lblEstado,
+        string hintText,
+        EventHandler hCsv, EventHandler hEditar, EventHandler hGuardar, EventHandler hCancelar)
+    {
+        pnl.Dock      = DockStyle.Top;
+        pnl.Height    = 46;
+        pnl.BackColor = Color.FromArgb(240, 243, 250);
+
+        SetupBtn(btnCsv,     txtCsv,        8,   colorCsv,                   140);
+        SetupBtn(btnEditar,  "✏️ Editar",   155, Color.FromArgb(60, 90, 160), 90);
+        SetupBtn(btnGuardar, "💾 Guardar",  252, Color.FromArgb(30, 120, 60), 90);
+        SetupBtn(btnCancelar,"✕ Cancelar",  349, Color.FromArgb(160, 60, 60), 90);
+
+        btnGuardar.Visible  = false;
+        btnCancelar.Visible = false;
+
+        lblEstado.Location = new Point(447, 13);
+        lblEstado.Size     = new Size(560, 20);
+        lblEstado.Font     = new Font("Segoe UI", 8.5f);
+        lblEstado.Text     = hintText;
+        lblEstado.ForeColor = Color.FromArgb(100, 100, 100);
+
+        btnCsv.Click     += hCsv;
+        btnEditar.Click  += hEditar;
+        btnGuardar.Click += hGuardar;
+        btnCancelar.Click += hCancelar;
+
+        pnl.Controls.AddRange(new Control[] { btnCsv, btnEditar, btnGuardar, btnCancelar, lblEstado });
+    }
+
+    private static void SetupBtn(Button btn, string texto, int x, Color color, int ancho)
     {
         btn.Text      = texto;
-        btn.Location  = new Point(x, 26);
-        btn.Size      = new Size(155, 28);
-        btn.Font      = new Font("Segoe UI", 9, FontStyle.Bold);
+        btn.Location  = new Point(x, 7);
+        btn.Size      = new Size(ancho, 30);
+        btn.Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold);
         btn.BackColor = color;
         btn.ForeColor = Color.White;
         btn.FlatStyle = FlatStyle.Flat;
@@ -204,23 +232,30 @@ partial class FormMantenimiento
         dgv.ColumnHeadersBorderStyle                  = DataGridViewHeaderBorderStyle.None;
     }
 
+    // Campos
     private Label          lblTitulo;
     private TabControl     tabControl;
-    private TabPage        tabCadetes;
-    private TabPage        tabSupervisores;
-    private TabPage        tabCastigos;
-    private Panel          pnlToolCadetes;
-    private Button         btnCargarCsv3;
-    private Button         btnCargarCsv4;
-    private Button         btnCargarCsv5;
-    private Label          lblEstadoCadetes;
-    private DataGridView   dgvCadetes;
-    private Panel          pnlToolSupervisores;
+    private TabPage        tabCadetes3, tabCadetes4, tabCadetes5;
+    private TabPage        tabSupervisores, tabCastigos;
+    private Panel          pnlTool3, pnlTool4, pnlTool5;
+    private Panel          pnlToolSupervisores, pnlToolCastigos;
+    private Button         btnCargarCsv3, btnCargarCsv4, btnCargarCsv5;
+    private Button         btnEditarCadetes3, btnGuardarCadetes3, btnCancelarCadetes3;
+    private Button         btnEditarCadetes4, btnGuardarCadetes4, btnCancelarCadetes4;
+    private Button         btnEditarCadetes5, btnGuardarCadetes5, btnCancelarCadetes5;
+    private Button         btnAgregarCadetes3, btnEliminarCadetes3;
+    private Button         btnAgregarCadetes4, btnEliminarCadetes4;
+    private Button btnAgregarCadetes5, btnEliminarCadetes5;
+    private Button btnAgregarSupervisores, btnEliminarSupervisores;
+    private Button btnAgregarCastigos, btnEliminarCastigos;
+    private Label          lblEstadoCadetes3, lblEstadoCadetes4, lblEstadoCadetes5;
+    private DataGridView   dgvCadetes3, dgvCadetes4, dgvCadetes5;
     private Button         btnCargarCsvSupervisores;
+    private Button         btnEditarSupervisores, btnGuardarSupervisores, btnCancelarSupervisores;
     private Label          lblEstadoSupervisores;
     private DataGridView   dgvSupervisores;
-    private Panel          pnlToolCastigos;
     private Button         btnCargarCsvCastigos;
+    private Button         btnEditarCastigos, btnGuardarCastigos, btnCancelarCastigos;
     private Label          lblEstadoCastigos;
     private DataGridView   dgvCastigos;
 }

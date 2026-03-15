@@ -7,7 +7,6 @@ namespace ColegioMilitar.Infrastructure.Repositories;
 public class BimestreRepository
 {
     private readonly ColegioMilitarContext _ctx;
-
     public BimestreRepository(ColegioMilitarContext ctx) => _ctx = ctx;
 
     public async Task<IEnumerable<BimestreConfig>> GetAllAsync() =>
@@ -21,10 +20,6 @@ public class BimestreRepository
             .OrderBy(b => b.NroSemana)
             .ToListAsync();
 
-    /// <summary>
-    /// Dado una fecha, devuelve la semana del bimestre a la que pertenece.
-    /// Retorna null si la fecha no cae en ninguna semana configurada.
-    /// </summary>
     public async Task<BimestreConfig?> GetSemanaParaFechaAsync(DateTime fecha) =>
         await _ctx.BimestresConfig
             .Where(b => b.FechaInicio <= fecha && fecha <= b.FechaFin && !b.Cerrada)
@@ -36,17 +31,25 @@ public class BimestreRepository
         await _ctx.SaveChangesAsync();
     }
 
-    /// <summary>Marca una semana como cerrada (ya no acepta sanciones nuevas en esa semana).</summary>
-    public async Task CerrarSemanaAsync(int bimestre, int año, int nroSemana)
+    public async Task UpdateAsync(BimestreConfig config)
     {
-        var semana = await _ctx.BimestresConfig
-            .FirstOrDefaultAsync(b => b.Bimestre == bimestre
-                                   && b.Año == año
-                                   && b.NroSemana == nroSemana);
-        if (semana is not null)
+        _ctx.BimestresConfig.Update(config);
+        await _ctx.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var item = await _ctx.BimestresConfig.FindAsync(id);
+        if (item is not null)
         {
-            semana.Cerrada = true;
+            _ctx.BimestresConfig.Remove(item);
             await _ctx.SaveChangesAsync();
         }
+    }
+
+    public async Task CerrarSemanaAsync(int id)
+    {
+        var semana = await _ctx.BimestresConfig.FindAsync(id);
+        if (semana is not null) { semana.Cerrada = true; await _ctx.SaveChangesAsync(); }
     }
 }

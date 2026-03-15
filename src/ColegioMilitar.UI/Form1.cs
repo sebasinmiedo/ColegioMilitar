@@ -4,14 +4,20 @@ namespace ColegioMilitar.UI;
 
 public partial class Form1 : Form
 {
-    private int _semanaActiva3    = 0;
-    private int _semanaActiva4    = 0;
-    private int _semanaActiva5    = 0;
+    // 0 = todas las semanas (default)
+    private int _semanaActiva3      = 0;
+    private int _semanaActiva4      = 0;
+    private int _semanaActiva5      = 0;
     private int _semanaActivaSalida = 1;
 
     public Form1() { InitializeComponent(); }
 
     private async void Form1_Load(object sender, EventArgs e)
+    {
+        await RefrescarTodosAsync();
+    }
+
+    private async Task RefrescarTodosAsync()
     {
         await RefrescarTabAsync(3, dgv3, _semanaActiva3);
         await RefrescarTabAsync(4, dgv4, _semanaActiva4);
@@ -70,26 +76,58 @@ public partial class Form1 : Form
     {
         try
         {
-            var sanciones = await Program.SancionService.ListarTodosAsync();
-            var filtradas = sanciones
+            // Obtener todos los cadetes del año
+            var cadetes   = (await Program.Cadetes.GetByAñoAsync(añoCadete)).ToList();
+            var sanciones = (await Program.SancionService.ListarTodosAsync())
                 .Where(s => s.Cadete.Año == añoCadete)
                 .Where(s => semana == 0 || s.SemanaBimestre == semana)
-                .OrderBy(s => s.Cadete.ApellidosNombres)
-                .Select((s, i) => new
+                .ToList();
+
+            // Mostrar TODOS los cadetes; si no tienen sanción, aparecen con fila vacía
+            var filas = cadetes.SelectMany(cadete =>
+            {
+                var sc = sanciones.Where(s => s.CadeteDNI == cadete.DNI).ToList();
+                if (!sc.Any())
                 {
-                    N                = i + 1,
+                    // Cadete sin sanciones: fila vacía
+                    return new[] { new
+                    {
+                        Codigo           = cadete.DNI,
+                        ApellidosNombres = cadete.ApellidosNombres,
+                        Motivo           = "",
+                        Ptos             = "",
+                        Reinc            = (object)"",
+                        Hora             = "",
+                        Fecha            = "",
+                        Superior         = ""
+                    }};
+                }
+                return sc.Select(s => new
+                {
                     Codigo           = s.CadeteDNI,
                     ApellidosNombres = s.Cadete.ApellidosNombres,
                     Motivo           = s.Castigo.Descripcion,
                     Ptos             = s.EsPierdeSalida ? "1PV" : s.PuntosAplicados.ToString(),
-                    Reinc            = s.Castigo.Reincidencia,
+                    Reinc            = (object)s.Castigo.Reincidencia,
                     Hora             = s.Hora.ToString(@"hh\:mm"),
                     Fecha            = s.Fecha.ToString("dd/MM/yyyy"),
                     Superior         = $"{s.Supervisor.Grado} {s.Supervisor.ApellidosNombres}"
-                })
-                .ToList();
+                });
+            })
+            .Select((f, i) => new
+            {
+                N                = i + 1,
+                f.Codigo,
+                f.ApellidosNombres,
+                f.Motivo,
+                f.Ptos,
+                f.Reinc,
+                f.Hora,
+                f.Fecha,
+                f.Superior
+            }).ToList();
 
-            dgv.DataSource = filtradas;
+            dgv.DataSource = filas;
             AjustarColumnasDgv(dgv);
         }
         catch { }
@@ -120,8 +158,8 @@ public partial class Form1 : Form
     {
         if (dgv.Columns.Count == 0) return;
         dgv.Columns["N"]!.Width                = 40;
-        dgv.Columns["Codigo"]!.Width           = 80;
-        dgv.Columns["ApellidosNombres"]!.Width = 220;
+        dgv.Columns["Codigo"]!.Width           = 85;
+        dgv.Columns["ApellidosNombres"]!.Width = 230;
         dgv.Columns["Motivo"]!.AutoSizeMode    = DataGridViewAutoSizeColumnMode.Fill;
         dgv.Columns["Ptos"]!.Width             = 50;
         dgv.Columns["Reinc"]!.Width            = 50;
@@ -155,7 +193,6 @@ public partial class Form1 : Form
         dgv.Columns["TotalPuntos"]!.HeaderText      = "PTOS";
         dgv.Columns["Salida"]!.HeaderText           = "SALIDA";
 
-        // Colorear filas según estado de salida
         foreach (DataGridViewRow row in dgv.Rows)
         {
             var salida = row.Cells["Salida"].Value?.ToString() ?? "";
@@ -177,13 +214,7 @@ public partial class Form1 : Form
     private void btnInsertarSancion_Click(object sender, EventArgs e)
     {
         var form = new FormRegistrarSancion();
-        form.SancionGuardada += async () =>
-        {
-            await RefrescarTabAsync(3, dgv3, _semanaActiva3);
-            await RefrescarTabAsync(4, dgv4, _semanaActiva4);
-            await RefrescarTabAsync(5, dgv5, _semanaActiva5);
-            await RefrescarSalidaAsync(_semanaActivaSalida);
-        };
+        form.SancionGuardada += async () => await RefrescarTodosAsync();
         form.Show(this);
     }
 
@@ -194,11 +225,13 @@ public partial class Form1 : Form
     private void btnMantenimiento_Click(object sender, EventArgs e) =>
         new FormMantenimiento().Show(this);
 
-    private async void btnRefrescar_Click(object sender, EventArgs e)
+    private void btnConfigBimestre_Click(object sender, EventArgs e)
     {
-        await RefrescarTabAsync(3, dgv3, _semanaActiva3);
-        await RefrescarTabAsync(4, dgv4, _semanaActiva4);
-        await RefrescarTabAsync(5, dgv5, _semanaActiva5);
-        await RefrescarSalidaAsync(_semanaActivaSalida);
+        var form = new FormConfigBimestre();
+        form.FormClosed += async (s, e) => await RefrescarTodosAsync();
+        form.ShowDialog(this);
     }
+
+    private async void btnRefrescar_Click(object sender, EventArgs e) =>
+        await RefrescarTodosAsync();
 }
