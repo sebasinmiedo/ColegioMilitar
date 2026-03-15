@@ -137,6 +137,29 @@ public partial class FormConfigBimestre : Form
     private async void nudAño_ValueChanged(object sender, EventArgs e) =>
         await RefrescarGrillaAsync();
 
+    // ── Reabrir semana ────────────────────────────────────────────────────
+
+    private async void btnReabrir_Click(object sender, EventArgs e)
+    {
+        if (dgvSemanas.CurrentRow is null) return;
+        var id = (int)dgvSemanas.CurrentRow.Cells["Id"].Value;
+        var nombre = dgvSemanas.CurrentRow.Cells["NombreSemana"].Value?.ToString();
+        var estado = dgvSemanas.CurrentRow.Cells["Cerrada"].Value?.ToString();
+
+        if (estado != "✓ Cerrada")
+        { MostrarError("Esta semana ya está abierta."); return; }
+
+        var confirm = MessageBox.Show(
+            $"¿Reabrir la semana '{nombre}'?",
+            "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+        if (confirm != DialogResult.Yes) return;
+
+        await Program.Bimestres.ReabrirSemanaAsync(id);
+        MostrarOk($"✓ Semana '{nombre}' reabierta.");
+        await RefrescarGrillaAsync();
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────
 
     private async Task RenumerarSemanasAsync()

@@ -29,6 +29,7 @@ partial class FormConfigBimestre
         pnlBotones   = new Panel();
         btnEliminar  = new Button();
         btnCerrar    = new Button();
+        btnReabrir = new Button();
         lblEstado    = new Label();
 
         grpFiltro.SuspendLayout();
@@ -176,6 +177,19 @@ partial class FormConfigBimestre
         btnCerrar.Cursor    = Cursors.Hand;
         btnCerrar.Click    += btnCerrar_Click;
 
+        btnReabrir.Text = "🔓  Reabrir semana";
+        btnReabrir.Location = new Point(366, 4);
+        btnReabrir.Size = new Size(160, 30);
+        btnReabrir.Font = new Font("Segoe UI", 9);
+        btnReabrir.BackColor = Color.FromArgb(30, 100, 160);
+        btnReabrir.ForeColor = Color.White;
+        btnReabrir.FlatStyle = FlatStyle.Flat;
+        btnReabrir.FlatAppearance.BorderSize = 0;
+        btnReabrir.Cursor = Cursors.Hand;
+        btnReabrir.Click += btnReabrir_Click;
+
+        pnlBotones.Controls.Add(btnReabrir);
+
         pnlBotones.Controls.AddRange(new Control[] { btnEliminar, btnCerrar });
 
         lblEstado.Location  = new Point(10, 512);
@@ -228,4 +242,5 @@ partial class FormConfigBimestre
     private Button           btnEliminar;
     private Button           btnCerrar;
     private Label            lblEstado;
+    private Button btnReabrir;
 }

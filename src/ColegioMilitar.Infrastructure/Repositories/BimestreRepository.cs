@@ -52,4 +52,10 @@ public class BimestreRepository
         var semana = await _ctx.BimestresConfig.FindAsync(id);
         if (semana is not null) { semana.Cerrada = true; await _ctx.SaveChangesAsync(); }
     }
+
+    public async Task ReabrirSemanaAsync(int id)
+    {
+        var semana = await _ctx.BimestresConfig.FindAsync(id);
+        if (semana is not null) { semana.Cerrada = false; await _ctx.SaveChangesAsync(); }
+    }
 }

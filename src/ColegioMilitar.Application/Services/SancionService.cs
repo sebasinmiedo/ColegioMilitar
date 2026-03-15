@@ -51,8 +51,8 @@ public class SancionService
         {
             var config = await _bimestres.GetSemanaParaFechaAsync(dto.Fecha)
                 ?? throw new InvalidOperationException(
-                    $"La fecha {dto.Fecha:dd/MM/yyyy} no pertenece a ninguna semana configurada. " +
-                    "Configura el bimestre primero.");
+                    $"La semana del {dto.Fecha:dd/MM/yyyy} está cerrada o no existe. " +
+                    "Ve a '📅 Config Semanas' para verificar el estado de la semana.");
             semana = config.NroSemana;
         }
 
