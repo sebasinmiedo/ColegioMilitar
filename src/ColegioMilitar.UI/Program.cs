@@ -33,7 +33,8 @@ internal static class Program
             return;
         }
 
-        Application.Run(new Form1());
+        // Application.Run(new Form1()); Da error idkw xd
+        System.Windows.Forms.Application.Run(new Form1());
     }
 
     private static void InicializarBaseDatos()
