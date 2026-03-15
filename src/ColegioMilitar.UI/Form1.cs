@@ -222,7 +222,7 @@ public partial class Form1 : Form
                 {
                     filas.Add(new FilaSancionRow
                     {
-                        N = n++,
+                        N = n++.ToString(),
                         Codigo = s.CadeteDNI,
                         ApellidosNombres = s.Cadete.ApellidosNombres,
                         Motivo = s.Castigo.Descripcion,
@@ -244,20 +244,21 @@ public partial class Form1 : Form
                     {
                         filas.Add(new FilaSancionRow
                         {
-                            N = n++,
+                            N = n++.ToString(),
                             Codigo = cadete.DNI,
                             ApellidosNombres = cadete.ApellidosNombres
                         });
                     }
                     else
                     {
+                        bool esPrimera = true;
                         foreach (var s in sc)
                         {
                             filas.Add(new FilaSancionRow
                             {
-                                N = n++,
-                                Codigo = s.CadeteDNI,
-                                ApellidosNombres = s.Cadete.ApellidosNombres,
+                                N = esPrimera ? n++.ToString() : "",
+                                Codigo = esPrimera ? cadete.DNI : "",
+                                ApellidosNombres = esPrimera ? cadete.ApellidosNombres : "",
                                 Motivo = s.Castigo.Descripcion,
                                 Ptos = s.EsPierdeSalida ? "1PV" : s.PuntosAplicados.ToString(),
                                 Reinc = s.Castigo.Reincidencia.ToString(),
@@ -265,6 +266,7 @@ public partial class Form1 : Form
                                 Fecha = s.Fecha.ToString("dd/MM/yyyy"),
                                 Superior = $"{s.Supervisor.Grado} {s.Supervisor.ApellidosNombres}"
                             });
+                            esPrimera = false;
                         }
                     }
                 }
@@ -362,7 +364,7 @@ public partial class Form1 : Form
 
     private class FilaSancionRow
     {
-        public int N { get; set; }
+        public string N { get; set; } = "";
         public string Codigo { get; set; } = "";
         public string ApellidosNombres { get; set; } = "";
         public string Motivo { get; set; } = "";
