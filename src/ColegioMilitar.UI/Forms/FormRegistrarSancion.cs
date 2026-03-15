@@ -5,9 +5,10 @@ namespace ColegioMilitar.UI.Forms;
 
 public partial class FormRegistrarSancion : Form
 {
-    // ── Estado interno ───────────────────────────────────────────────────────
-    private Cadete?    _cadeteActual;
-    private Castigo?   _castigoActual;
+    public event Func<Task>? SancionGuardada;
+
+    private Cadete?     _cadeteActual;
+    private Castigo?    _castigoActual;
     private Supervisor? _supervisorActual;
 
     public FormRegistrarSancion()
@@ -16,50 +17,28 @@ public partial class FormRegistrarSancion : Form
         ConfigurarFormulario();
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  INICIALIZACIÓN
-    // ════════════════════════════════════════════════════════════════════════
-
     private void ConfigurarFormulario()
     {
-        // Fecha/hora por defecto = ahora
         dtpFecha.Value = DateTime.Today;
         dtpHora.Value  = DateTime.Now;
 
-        // Semana manual: 1-5, oculto por defecto (se resuelve automático)
-        nudSemana.Minimum = 1;
-        nudSemana.Maximum = 5;
-        nudSemana.Value   = 1;
-        pnlSemanaManual.Visible = false;
-
-        chkSemanaManual.CheckedChanged += (s, e) =>
-            pnlSemanaManual.Visible = chkSemanaManual.Checked;
-
-        // Enter en DNI cadete → buscar
         txtDNICadete.KeyDown += async (s, e) =>
         {
             if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await BuscarCadeteAsync(); }
         };
-
-        // Enter en código castigo → buscar
         txtCodigoCastigo.KeyDown += async (s, e) =>
         {
             if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await BuscarCastigoAsync(); }
         };
-
-        // Enter en DNI supervisor → buscar
         txtDNISupervisor.KeyDown += async (s, e) =>
         {
             if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await BuscarSupervisorAsync(); }
         };
-
-        // Enter en observaciones → guardar
         txtObservaciones.KeyDown += async (s, e) =>
         {
             if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await GuardarAsync(); }
         };
 
-        // F5 = guardar desde cualquier campo
         this.KeyPreview = true;
         this.KeyDown += async (s, e) =>
         {
@@ -71,13 +50,10 @@ public partial class FormRegistrarSancion : Form
 
     private async void FormRegistrarSancion_Load(object sender, EventArgs e)
     {
-        // Pre-cargar supervisores en el combo (cambian poco)
         await CargarSupervisoresComboAsync();
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  BÚSQUEDAS
-    // ════════════════════════════════════════════════════════════════════════
+    // ── Búsquedas ────────────────────────────────────────────────────────────
 
     private async Task BuscarCadeteAsync()
     {
@@ -94,7 +70,7 @@ public partial class FormRegistrarSancion : Form
         else
         {
             MostrarOk(lblCadeteInfo,
-                $"✓ {_cadeteActual.ApellidosNombres}  |  {_cadeteActual.Año}° Año  |  Div. {_cadeteActual.Division ?? "-"}");
+                $"✓ {_cadeteActual.ApellidosNombres}  |  {_cadeteActual.Año}° Año");
             txtCodigoCastigo.Enabled = true;
             txtCodigoCastigo.Focus();
         }
@@ -108,23 +84,15 @@ public partial class FormRegistrarSancion : Form
         _castigoActual = await Program.Castigos.GetByIdAsync(codigo);
 
         if (_castigoActual is null)
-        {
             MostrarError(lblCastigoInfo, $"✗ No existe el código {codigo}");
-        }
         else
         {
             int pts = _cadeteActual is not null
-                ? _castigoActual.GetPuntosPorAño(_cadeteActual.Año)
-                : 0;
+                ? _castigoActual.GetPuntosPorAño(_cadeteActual.Año) : 0;
+            MostrarOk(lblCastigoInfo, $"✓ {_castigoActual.Descripcion}  |  {pts} pts");
 
-            MostrarOk(lblCastigoInfo,
-                $"✓ {_castigoActual.Descripcion}  |  {pts} pts");
-
-            // Foco al supervisor solo si ya está seleccionado; si no, ir al campo
-            if (_supervisorActual is not null)
-                btnGuardar.Focus();
-            else
-                txtDNISupervisor.Focus();
+            if (_supervisorActual is not null) btnGuardar.Focus();
+            else txtDNISupervisor.Focus();
         }
     }
 
@@ -136,9 +104,7 @@ public partial class FormRegistrarSancion : Form
         _supervisorActual = await Program.Supervisores.GetByIdAsync(dni);
 
         if (_supervisorActual is null)
-        {
             MostrarError(lblSupervisorInfo, $"✗ No existe supervisor con DNI {dni}");
-        }
         else
         {
             MostrarOk(lblSupervisorInfo,
@@ -153,21 +119,20 @@ public partial class FormRegistrarSancion : Form
         cmbSupervisor.DataSource    = supervisores.ToList();
         cmbSupervisor.DisplayMember = "ApellidosNombres";
         cmbSupervisor.ValueMember   = "DNI";
+        cmbSupervisor.SelectedIndex = -1;
 
         cmbSupervisor.SelectedIndexChanged += (s, e) =>
         {
             if (cmbSupervisor.SelectedItem is Supervisor sup)
             {
-                _supervisorActual = sup;
+                _supervisorActual     = sup;
                 txtDNISupervisor.Text = sup.DNI;
                 MostrarOk(lblSupervisorInfo, $"✓ {sup.Grado} {sup.ApellidosNombres}");
             }
         };
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  GUARDAR
-    // ════════════════════════════════════════════════════════════════════════
+    // ── Guardar ──────────────────────────────────────────────────────────────
 
     private async void btnGuardar_Click(object sender, EventArgs e) => await GuardarAsync();
 
@@ -189,24 +154,24 @@ public partial class FormRegistrarSancion : Form
                 Hora          = dtpHora.Value.TimeOfDay,
                 Observaciones = string.IsNullOrWhiteSpace(txtObservaciones.Text)
                                     ? null : txtObservaciones.Text.Trim(),
-                SemanaBimestreManual = chkSemanaManual.Checked
-                                    ? (int)nudSemana.Value : null
+                SemanaBimestreManual = null  // siempre automático
             };
 
             await Program.SancionService.RegistrarAsync(dto);
 
-            // Mostrar confirmación en la grilla de registros recientes
-            await RefrescarGrillaAsync();
+            lblEstado.ForeColor = Color.DarkGreen;
+            lblEstado.Text      = $"✓ Guardado — {_cadeteActual.ApellidosNombres} | Cod. {_castigoActual.Codigo}";
 
-            lblEstado.ForeColor = Color.Green;
-            lblEstado.Text      = $"✓ Sanción guardada — {_cadeteActual.ApellidosNombres} | {_castigoActual.Codigo}";
+            // Notificar al Form1 para que refresque la grilla
+            if (SancionGuardada is not null)
+                await SancionGuardada.Invoke();
 
             LimpiarCamposPostGuardado();
         }
         catch (Exception ex)
         {
             lblEstado.ForeColor = Color.Red;
-            lblEstado.Text      = $"✗ Error: {ex.Message}";
+            lblEstado.Text      = $"✗ {ex.Message}";
         }
         finally
         {
@@ -214,91 +179,46 @@ public partial class FormRegistrarSancion : Form
         }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    //  GRILLA DE REGISTROS RECIENTES
-    // ════════════════════════════════════════════════════════════════════════
-
-    private async Task RefrescarGrillaAsync()
-    {
-        var sanciones = (await Program.SancionService.ListarTodosAsync())
-            .Take(50)   // últimas 50 para no sobrecargar
-            .Select(s => new
-            {
-                s.Id,
-                Cadete     = s.Cadete.ApellidosNombres,
-                Año        = $"{s.Cadete.Año}°",
-                Codigo     = s.CastigoCodigo,
-                Descripcion = s.Castigo.Descripcion,
-                Puntos     = s.PuntosAplicados,
-                Semana     = s.SemanaBimestre,
-                Fecha      = s.Fecha.ToString("dd/MM/yyyy"),
-                Supervisor = $"{s.Supervisor.Grado} {s.Supervisor.ApellidosNombres}"
-            });
-
-        dgvRecientes.DataSource = sanciones.ToList();
-
-        // Ajustar columnas solo la primera vez
-        if (dgvRecientes.Columns.Count > 0 && dgvRecientes.Columns["Id"] is not null)
-            dgvRecientes.Columns["Id"]!.Visible = false;
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    //  HELPERS
-    // ════════════════════════════════════════════════════════════════════════
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private bool ValidarCampos()
     {
         if (_cadeteActual is null)
-        { MostrarError(lblCadeteInfo, "✗ Busca un cadete primero (Enter en el DNI)"); txtDNICadete.Focus(); return false; }
-
+        { MostrarError(lblCadeteInfo, "✗ Busca un cadete primero"); txtDNICadete.Focus(); return false; }
         if (_castigoActual is null)
-        { MostrarError(lblCastigoInfo, "✗ Busca un código de castigo (Enter en el código)"); txtCodigoCastigo.Focus(); return false; }
-
+        { MostrarError(lblCastigoInfo, "✗ Ingresa un código de castigo"); txtCodigoCastigo.Focus(); return false; }
         if (_supervisorActual is null)
         { MostrarError(lblSupervisorInfo, "✗ Selecciona un supervisor"); txtDNISupervisor.Focus(); return false; }
-
         return true;
     }
 
-    /// <summary>Limpia solo los campos que cambian por sanción. DNI supervisor se mantiene.</summary>
     private void LimpiarCamposPostGuardado()
     {
         txtDNICadete.Clear();
         txtCodigoCastigo.Clear();
         txtObservaciones.Clear();
-
-        lblCadeteInfo.Text   = string.Empty;
-        lblCastigoInfo.Text  = string.Empty;
-
-        _cadeteActual  = null;
-        _castigoActual = null;
-
+        lblCadeteInfo.Text  = string.Empty;
+        lblCastigoInfo.Text = string.Empty;
+        _cadeteActual       = null;
+        _castigoActual      = null;
         txtCodigoCastigo.Enabled = false;
         txtDNICadete.Focus();
-    }
-
-    private static void MostrarOk(Label lbl, string texto)
-    {
-        lbl.ForeColor = Color.DarkGreen;
-        lbl.Text      = texto;
-    }
-
-    private static void MostrarError(Label lbl, string texto)
-    {
-        lbl.ForeColor = Color.Red;
-        lbl.Text      = texto;
     }
 
     private async void btnLimpiarTodo_Click(object sender, EventArgs e)
     {
         LimpiarCamposPostGuardado();
-        _supervisorActual = null;
-        txtDNISupervisor.Clear();
+        _supervisorActual      = null;
+        txtDNISupervisor.Text  = string.Empty;
         lblSupervisorInfo.Text = string.Empty;
         lblEstado.Text         = string.Empty;
+        cmbSupervisor.SelectedIndex = -1;
         await Task.CompletedTask;
     }
 
-    private async void btnRefrescar_Click(object sender, EventArgs e) =>
-        await RefrescarGrillaAsync();
+    private static void MostrarOk(Label lbl, string texto)
+    { lbl.ForeColor = Color.DarkGreen; lbl.Text = texto; }
+
+    private static void MostrarError(Label lbl, string texto)
+    { lbl.ForeColor = Color.Red; lbl.Text = texto; }
 }

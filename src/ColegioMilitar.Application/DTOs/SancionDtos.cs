@@ -1,63 +1,67 @@
 namespace ColegioMilitar.Application.DTOs;
 
-/// <summary>Datos que el formulario envía para registrar una sanción.</summary>
 public class RegistrarSancionDto
 {
-    public string CadeteDNI { get; set; } = string.Empty;
-    public string SupervisorDNI { get; set; } = string.Empty;
-    public string CastigoCodigo { get; set; } = string.Empty;
-    public DateTime Fecha { get; set; } = DateTime.Today;
-    public TimeSpan Hora { get; set; } = DateTime.Now.TimeOfDay;
-    public string? Observaciones { get; set; }
-    /// <summary>
-    /// Si es null, se calcula automáticamente desde BimestreConfig según la Fecha.
-    /// El operador puede sobrescribirla si no hay bimestre configurado.
-    /// </summary>
-    public int? SemanaBimestreManual { get; set; }
+    public string    CadeteDNI            { get; set; } = string.Empty;
+    public string    SupervisorDNI        { get; set; } = string.Empty;
+    public string    CastigoCodigo        { get; set; } = string.Empty;
+    public DateTime  Fecha                { get; set; } = DateTime.Today;
+    public TimeSpan  Hora                 { get; set; } = DateTime.Now.TimeOfDay;
+    public string?   Observaciones        { get; set; }
+    public int?      SemanaBimestreManual { get; set; }
 }
 
-/// <summary>Fila del consolidado bimestral (una por cadete).</summary>
 public class FilaConsolidadoDto
 {
-    public string CadeteDNI { get; set; } = string.Empty;
-    public string ApellidosNombres { get; set; } = string.Empty;
-    public int Año { get; set; }
-    public string? Division { get; set; }
+    public string  CadeteDNI        { get; set; } = string.Empty;
+    public string  ApellidosNombres { get; set; } = string.Empty;
+    public int     Año              { get; set; }
+    public string? Division         { get; set; }
 
-    // Puntos por semana (1 a 5)
     public int PtosSemana1 { get; set; }
     public int PtosSemana2 { get; set; }
     public int PtosSemana3 { get; set; }
     public int PtosSemana4 { get; set; }
     public int PtosSemana5 { get; set; }
 
-    public int TotalPuntos => PtosSemana1 + PtosSemana2 + PtosSemana3 + PtosSemana4 + PtosSemana5;
-
-    // Columnas calculadas
+    public int     TotalPuntos    => PtosSemana1 + PtosSemana2 + PtosSemana3 + PtosSemana4 + PtosSemana5;
     public decimal PtosDisminucion => Math.Round(TotalPuntos * 0.1m, 2);
-    public decimal Nota => 20m;
-    public decimal Conducta => Nota - PtosDisminucion;
-
-    /// <summary>Ingresado manualmente. Se carga desde ActitudMilitarManual.</summary>
-    public decimal ActitudMilitar { get; set; }
-
-    public decimal NotaFinal => Math.Round((Conducta + ActitudMilitar) / 2m, 2);
+    public decimal Nota            => 20m;
+    public decimal Conducta        => Nota - PtosDisminucion;
+    public decimal ActitudMilitar  { get; set; }
+    public decimal NotaFinal       => Math.Round((Conducta + ActitudMilitar) / 2m, 2);
 }
 
-/// <summary>Fila del reporte PTOS SALIDA.</summary>
+/// <summary>
+/// Fila del reporte PTOS SALIDA.
+/// La columna Salida considera tanto puntos como el flag 1PV.
+/// </summary>
 public class FilaPtosSalidaDto
 {
-    public string CadeteDNI { get; set; } = string.Empty;
+    public string CadeteDNI        { get; set; } = string.Empty;
     public string ApellidosNombres { get; set; } = string.Empty;
-    public int Año { get; set; }
-    public int TotalPuntos { get; set; }
+    public int    Año              { get; set; }
+    public int    TotalPuntos      { get; set; }
 
-    /// <summary>Calculado en tiempo real, no se almacena en BD.</summary>
-    public string Salida => TotalPuntos switch
+    /// <summary>
+    /// True si alguna sanción de la semana tiene EsPierdeSalida = true (código 1PV).
+    /// Esto fuerza "Pierde salida" sin importar los puntos acumulados.
+    /// </summary>
+    public bool TienePierdeSalida  { get; set; }
+
+    /// <summary>
+    /// Lógica:
+    ///   1PV                 → "Pierde salida"
+    ///   puntos >= 20        → "Pierde salida"
+    ///   puntos >= 15        → "Sale domingo 07:00 hrs"
+    ///   puntos >= 10        → "Sale sábado 07:00 hrs"
+    ///   puntos < 10         → "Completa"
+    /// </summary>
+    public string Salida => TienePierdeSalida ? "Pierde salida" : TotalPuntos switch
     {
-        < 10 => "Completa",
-        < 15 => "Sale sábado 07:00 hrs",
-        < 20 => "Sale domingo 07:00 hrs",
-        _    => "Pierde salida"
+        >= 20 => "Pierde salida",
+        >= 15 => "Sale domingo 07:00 hrs",
+        >= 10 => "Sale sábado 07:00 hrs",
+        _     => "Completa"
     };
 }
