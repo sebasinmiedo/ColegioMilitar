@@ -18,12 +18,12 @@ public class SancionRepository : IRepository<Sancion, int>
             .FirstOrDefaultAsync(s => s.Id == id);
 
     public async Task<IEnumerable<Sancion>> GetAllAsync() =>
-        await _ctx.Sanciones
-            .Include(s => s.Cadete)
-            .Include(s => s.Supervisor)
-            .Include(s => s.Castigo)
-            .OrderByDescending(s => s.Fecha).ThenByDescending(s => s.Hora)
-            .ToListAsync();
+    await _ctx.Sanciones
+        .Include(s => s.Cadete)
+        .Include(s => s.Supervisor)
+        .Include(s => s.Castigo)
+        .OrderByDescending(s => s.Fecha)
+        .ToListAsync();
 
     /// <summary>Todas las sanciones de una semana específica.</summary>
     public async Task<IEnumerable<Sancion>> GetBySemanaBimestreAsync(int semana) =>

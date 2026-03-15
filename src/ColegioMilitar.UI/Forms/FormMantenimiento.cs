@@ -37,8 +37,10 @@ public partial class FormMantenimiento : Form
         btnEditar.Enabled = !activar;
         btnGuardar.Visible = activar;
         btnCancelar.Visible = activar;
-        btnAgregar.Visible = activar;
-        btnEliminar.Visible = activar;
+
+        if (btnAgregar is not null) btnAgregar.Visible = activar;
+        if (btnEliminar is not null) btnEliminar.Visible = activar;
+
         dgv.BackgroundColor = activar
             ? Color.FromArgb(255, 255, 220)
             : Color.White;
@@ -55,30 +57,27 @@ public partial class FormMantenimiento : Form
     {
         var lista = (await Program.Cadetes.GetByAñoAsync(año)).ToList();
 
-        // Desactivar AutoSize global antes de asignar datos
         dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 
-        dgv.DataSource = lista.Select((c, i) => new
-        {
-            N = i + 1,
-            c.DNI,
-            ApellidosNombres = c.ApellidosNombres,
-            Division = c.Division ?? ""
-        }).ToList();
+        var bindingList = new System.ComponentModel.BindingList<CadeteRow>(
+            lista.Select((c, i) => new CadeteRow
+            {
+                N = i + 1,
+                DNI = c.DNI,
+                ApellidosNombres = c.ApellidosNombres,
+                Division = c.Division ?? ""
+            }).ToList());
 
-        // Ahora sí existen las columnas — configurar por índice
+        dgv.DataSource = bindingList;
+
         if (dgv.Columns.Count < 4) return;
-
         dgv.Columns[0].Width = 40;
         dgv.Columns[0].ReadOnly = true;
         dgv.Columns[0].HeaderText = "N°";
-
         dgv.Columns[1].Width = 90;
         dgv.Columns[1].HeaderText = "DNI";
-
         dgv.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
         dgv.Columns[2].HeaderText = "APELLIDOS Y NOMBRES";
-
         dgv.Columns[3].Width = 70;
         dgv.Columns[3].HeaderText = "DIVISIÓN";
     }
@@ -91,8 +90,9 @@ public partial class FormMantenimiento : Form
         btnCancelarCadetes3, btnAgregarCadetes3, btnEliminarCadetes3,
         ref _modoEdicionCadetes3, true);
     private async void btnGuardarCadetes3_Click(object sender, EventArgs e) =>
-        await GuardarCambiosCadetesAsync(dgvCadetes3, 3, btnEditarCadetes3,
-            btnGuardarCadetes3, btnCancelarCadetes3, lblEstadoCadetes3);
+    await GuardarCambiosCadetesAsync(dgvCadetes3, 3, btnEditarCadetes3,
+        btnGuardarCadetes3, btnCancelarCadetes3,
+        btnAgregarCadetes3, btnEliminarCadetes3, lblEstadoCadetes3);
 
     private async void btnCancelarCadetes3_Click(object sender, EventArgs e)
     {
@@ -118,8 +118,9 @@ public partial class FormMantenimiento : Form
         ref _modoEdicionCadetes4, true);
 
     private async void btnGuardarCadetes4_Click(object sender, EventArgs e) =>
-        await GuardarCambiosCadetesAsync(dgvCadetes4, 4, btnEditarCadetes4,
-            btnGuardarCadetes4, btnCancelarCadetes4, lblEstadoCadetes4);
+    await GuardarCambiosCadetesAsync(dgvCadetes4, 4, btnEditarCadetes4,
+        btnGuardarCadetes4, btnCancelarCadetes4,
+        btnAgregarCadetes4, btnEliminarCadetes4, lblEstadoCadetes4);
 
     private async void btnCancelarCadetes4_Click(object sender, EventArgs e)
     {
@@ -145,8 +146,9 @@ public partial class FormMantenimiento : Form
         ref _modoEdicionCadetes5, true);
 
     private async void btnGuardarCadetes5_Click(object sender, EventArgs e) =>
-        await GuardarCambiosCadetesAsync(dgvCadetes5, 5, btnEditarCadetes5,
-            btnGuardarCadetes5, btnCancelarCadetes5, lblEstadoCadetes5);
+    await GuardarCambiosCadetesAsync(dgvCadetes5, 5, btnEditarCadetes5,
+        btnGuardarCadetes5, btnCancelarCadetes5,
+        btnAgregarCadetes5, btnEliminarCadetes5, lblEstadoCadetes5);
 
     private async void btnCancelarCadetes5_Click(object sender, EventArgs e)
     {
@@ -198,31 +200,32 @@ public partial class FormMantenimiento : Form
 
     private async Task GuardarCambiosCadetesAsync(DataGridView dgv, int año,
     Button btnEditar, Button btnGuardar, Button btnCancelar,
-    Label lblEstado)
+    Button btnAgregar, Button btnEliminar, Label lblEstado)
     {
         int ok = 0, err = 0;
-        var existentes = (await Program.Cadetes.GetByAñoAsync(año)).ToList();
 
-        var dnisEnGrilla = new HashSet<string>();
-        foreach (DataGridViewRow row in dgv.Rows)
-        {
-            if (row.IsNewRow) continue;
-            var dni = row.Cells["DNI"].Value?.ToString()?.Trim();
-            if (!string.IsNullOrEmpty(dni)) dnisEnGrilla.Add(dni);
-        }
-        foreach (var c in existentes.Where(c => !dnisEnGrilla.Contains(c.DNI)))
+        if (dgv.DataSource is not System.ComponentModel.BindingList<CadeteRow> bindingList)
+        { lblEstado.ForeColor = Color.Red; lblEstado.Text = "Error: DataSource inválido."; return; }
+
+        // Forzar commit de la celda activa
+        dgv.EndEdit();
+
+        var existentes = (await Program.Cadetes.GetByAñoAsync(año)).ToList();
+        var dnisEnLista = bindingList.Select(r => r.DNI.Trim()).ToHashSet();
+
+        // Eliminar los que ya no están
+        foreach (var c in existentes.Where(c => !dnisEnLista.Contains(c.DNI)))
             try { await Program.Cadetes.DeleteAsync(c.DNI); } catch { }
 
-        foreach (DataGridViewRow row in dgv.Rows)
+        // Agregar o actualizar
+        foreach (var row in bindingList)
         {
-            if (row.IsNewRow) continue;
+            var dni = row.DNI.Trim();
+            var nombre = row.ApellidosNombres.Trim();
+            var div = string.IsNullOrWhiteSpace(row.Division) ? null : row.Division.Trim();
+            if (string.IsNullOrEmpty(dni) || string.IsNullOrEmpty(nombre)) continue;
             try
             {
-                var dni = row.Cells["DNI"].Value?.ToString()?.Trim() ?? "";
-                var nombre = row.Cells["ApellidosNombres"].Value?.ToString()?.Trim() ?? "";
-                var div = row.Cells["Division"].Value?.ToString()?.Trim();
-                if (string.IsNullOrEmpty(dni) || string.IsNullOrEmpty(nombre)) continue;
-
                 var existente = await Program.Cadetes.GetByIdAsync(dni);
                 if (existente is null)
                     await Program.Cadetes.AddAsync(
@@ -240,7 +243,6 @@ public partial class FormMantenimiento : Form
 
         lblEstado.ForeColor = Color.DarkGreen;
         lblEstado.Text = $"✓ {ok} guardados.{(err > 0 ? $" {err} errores." : "")}";
-        // Desactivar modo edición manualmente
         dgv.ReadOnly = true;
         dgv.AllowUserToAddRows = false;
         dgv.AllowUserToDeleteRows = false;
@@ -248,6 +250,8 @@ public partial class FormMantenimiento : Form
         btnEditar.Enabled = true;
         btnGuardar.Visible = false;
         btnCancelar.Visible = false;
+        btnAgregar.Visible = false;
+        btnEliminar.Visible = false;
         await RefrescarCadetesEnDgv(dgv, año, lblEstado);
     }
 
@@ -261,26 +265,25 @@ public partial class FormMantenimiento : Form
 
         dgvSupervisores.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 
-        dgvSupervisores.DataSource = lista.Select((s, i) => new
-        {
-            N = i + 1,
-            s.DNI,
-            s.Grado,
-            s.ApellidosNombres
-        }).ToList();
+        var bindingList = new System.ComponentModel.BindingList<SupervisorRow>(
+            lista.Select((s, i) => new SupervisorRow
+            {
+                N = i + 1,
+                DNI = s.DNI,
+                Grado = s.Grado,
+                ApellidosNombres = s.ApellidosNombres
+            }).ToList());
+
+        dgvSupervisores.DataSource = bindingList;
 
         if (dgvSupervisores.Columns.Count < 4) return;
-
         dgvSupervisores.Columns[0].Width = 40;
         dgvSupervisores.Columns[0].ReadOnly = true;
         dgvSupervisores.Columns[0].HeaderText = "N°";
-
         dgvSupervisores.Columns[1].Width = 90;
         dgvSupervisores.Columns[1].HeaderText = "DNI";
-
         dgvSupervisores.Columns[2].Width = 90;
         dgvSupervisores.Columns[2].HeaderText = "GRADO";
-
         dgvSupervisores.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
         dgvSupervisores.Columns[3].HeaderText = "APELLIDOS Y NOMBRES";
     }
@@ -325,38 +328,41 @@ public partial class FormMantenimiento : Form
 
     private async void btnGuardarSupervisores_Click(object sender, EventArgs e)
     {
+        if (dgvSupervisores.DataSource is not System.ComponentModel.BindingList<SupervisorRow> bindingList)
+        { lblEstadoSupervisores.ForeColor = Color.Red; lblEstadoSupervisores.Text = "Error: DataSource inválido."; return; }
+
+        dgvSupervisores.EndEdit();
+
         var existentes = (await Program.Supervisores.GetAllAsync()).ToList();
-        var dnisEnGrilla = new HashSet<string>();
-        foreach (DataGridViewRow row in dgvSupervisores.Rows)
-        {
-            if (row.IsNewRow) continue;
-            var d = row.Cells["DNI"].Value?.ToString()?.Trim();
-            if (!string.IsNullOrEmpty(d)) dnisEnGrilla.Add(d);
-        }
-        foreach (var s in existentes.Where(s => !dnisEnGrilla.Contains(s.DNI)))
+        var dnisEnLista = bindingList.Select(r => r.DNI.Trim()).ToHashSet();
+
+        foreach (var s in existentes.Where(s => !dnisEnLista.Contains(s.DNI)))
             try { await Program.Supervisores.DeleteAsync(s.DNI); } catch { }
 
-        foreach (DataGridViewRow row in dgvSupervisores.Rows)
+        foreach (var row in bindingList)
         {
-            if (row.IsNewRow) continue;
+            var dni = row.DNI.Trim();
+            var grado = row.Grado.Trim();
+            var nombre = row.ApellidosNombres.Trim();
+            if (string.IsNullOrEmpty(dni)) continue;
             try
             {
-                var dni    = row.Cells["DNI"].Value?.ToString()?.Trim() ?? "";
-                var grado  = row.Cells["Grado"].Value?.ToString()?.Trim() ?? "";
-                var nombre = row.Cells["ApellidosNombres"].Value?.ToString()?.Trim() ?? "";
-                if (string.IsNullOrEmpty(dni)) continue;
-
                 var ex = await Program.Supervisores.GetByIdAsync(dni);
                 if (ex is null)
                     await Program.Supervisores.AddAsync(
                         new Supervisor { DNI = dni, Grado = grado, ApellidosNombres = nombre });
-                else { ex.Grado = grado; ex.ApellidosNombres = nombre;
-                       await Program.Supervisores.UpdateAsync(ex); }
+                else
+                {
+                    ex.Grado = grado; ex.ApellidosNombres = nombre;
+                    await Program.Supervisores.UpdateAsync(ex);
+                }
             }
             catch { }
         }
+
         ToggleEdicion(dgvSupervisores, btnEditarSupervisores, btnGuardarSupervisores,
-            btnCancelarSupervisores, ref _modoEdicionSupervisores, false);
+            btnCancelarSupervisores, btnAgregarSupervisores, btnEliminarSupervisores,
+            ref _modoEdicionSupervisores, false);
         lblEstadoSupervisores.ForeColor = Color.DarkGreen;
         lblEstadoSupervisores.Text = "✓ Cambios guardados.";
         await RefrescarSupervisoresAsync();
@@ -380,42 +386,37 @@ public partial class FormMantenimiento : Form
 
         dgvCastigos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 
-        dgvCastigos.DataSource = lista.Select((c, i) => new
-        {
-            N = i + 1,
-            c.Codigo,
-            c.Descripcion,
-            III = c.PuntosAño3Raw,
-            IV = c.PuntosAño4Raw,
-            V = c.PuntosAño5Raw,
-            Reinc = c.Reincidencia,
-            c.Nota
-        }).ToList();
+        var bindingList = new System.ComponentModel.BindingList<CastigoRow>(
+            lista.Select((c, i) => new CastigoRow
+            {
+                N = i + 1,
+                Codigo = c.Codigo,
+                Descripcion = c.Descripcion,
+                III = c.PuntosAño3Raw,
+                IV = c.PuntosAño4Raw,
+                V = c.PuntosAño5Raw,
+                Reinc = c.Reincidencia,
+                Nota = c.Nota ?? ""
+            }).ToList());
+
+        dgvCastigos.DataSource = bindingList;
 
         if (dgvCastigos.Columns.Count < 8) return;
-
         dgvCastigos.Columns[0].Width = 40;
         dgvCastigos.Columns[0].ReadOnly = true;
         dgvCastigos.Columns[0].HeaderText = "N°";
-
         dgvCastigos.Columns[1].Width = 70;
         dgvCastigos.Columns[1].HeaderText = "CÓDIGO";
-
         dgvCastigos.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
         dgvCastigos.Columns[2].HeaderText = "DESCRIPCIÓN";
-
         dgvCastigos.Columns[3].Width = 55;
         dgvCastigos.Columns[3].HeaderText = "CAD III";
-
         dgvCastigos.Columns[4].Width = 55;
         dgvCastigos.Columns[4].HeaderText = "CAD IV";
-
         dgvCastigos.Columns[5].Width = 55;
         dgvCastigos.Columns[5].HeaderText = "CAD V";
-
         dgvCastigos.Columns[6].Width = 55;
         dgvCastigos.Columns[6].HeaderText = "REINC";
-
         dgvCastigos.Columns[7].Width = 55;
         dgvCastigos.Columns[7].HeaderText = "NOTA";
     }
@@ -477,42 +478,258 @@ public partial class FormMantenimiento : Form
 
     private async void btnGuardarCastigos_Click(object sender, EventArgs e)
     {
-        foreach (DataGridViewRow row in dgvCastigos.Rows)
+        if (dgvCastigos.DataSource is not System.ComponentModel.BindingList<CastigoRow> bindingList)
+        { lblEstadoCastigos.ForeColor = Color.Red; lblEstadoCastigos.Text = "Error: DataSource inválido."; return; }
+
+        dgvCastigos.EndEdit();
+
+        foreach (var row in bindingList)
         {
-            if (row.IsNewRow) continue;
+            var codigo = row.Codigo.Trim();
+            if (string.IsNullOrEmpty(codigo)) continue;
             try
             {
-                var codigo = row.Cells["Codigo"].Value?.ToString()?.Trim() ?? "";
-                if (string.IsNullOrEmpty(codigo)) continue;
-                var desc  = row.Cells["Descripcion"].Value?.ToString()?.Trim() ?? "";
-                var p3    = row.Cells["III"].Value?.ToString()?.Trim() ?? "0";
-                var p4    = row.Cells["IV"].Value?.ToString()?.Trim() ?? "0";
-                var p5    = row.Cells["V"].Value?.ToString()?.Trim() ?? "0";
-                int.TryParse(row.Cells["Reinc"].Value?.ToString(), out int reinc);
-                var nota  = row.Cells["Nota"].Value?.ToString()?.Trim();
-
                 var ex = await Program.Castigos.GetByIdAsync(codigo);
                 if (ex is null)
                     await Program.Castigos.AddAsync(new Domain.Entities.Castigo
                     {
-                        Codigo = codigo, Descripcion = desc,
-                        PuntosAño3Raw = p3, PuntosAño4Raw = p4, PuntosAño5Raw = p5,
-                        Reincidencia = reinc, Nota = nota
+                        Codigo = codigo,
+                        Descripcion = row.Descripcion.Trim(),
+                        PuntosAño3Raw = row.III.Trim(),
+                        PuntosAño4Raw = row.IV.Trim(),
+                        PuntosAño5Raw = row.V.Trim(),
+                        Reincidencia = row.Reinc,
+                        Nota = string.IsNullOrWhiteSpace(row.Nota) ? null : row.Nota.Trim()
                     });
                 else
                 {
-                    ex.Descripcion = desc; ex.PuntosAño3Raw = p3;
-                    ex.PuntosAño4Raw = p4; ex.PuntosAño5Raw = p5;
-                    ex.Reincidencia = reinc; ex.Nota = nota;
+                    ex.Descripcion = row.Descripcion.Trim();
+                    ex.PuntosAño3Raw = row.III.Trim();
+                    ex.PuntosAño4Raw = row.IV.Trim();
+                    ex.PuntosAño5Raw = row.V.Trim();
+                    ex.Reincidencia = row.Reinc;
+                    ex.Nota = string.IsNullOrWhiteSpace(row.Nota) ? null : row.Nota.Trim();
                     await Program.Castigos.UpdateAsync(ex);
                 }
             }
             catch { }
         }
+
         ToggleEdicion(dgvCastigos, btnEditarCastigos, btnGuardarCastigos,
-            btnCancelarCastigos, ref _modoEdicionCastigos, false);
+            btnCancelarCastigos, btnAgregarCastigos, btnEliminarCastigos,
+            ref _modoEdicionCastigos, false);
         lblEstadoCastigos.ForeColor = Color.DarkGreen;
         lblEstadoCastigos.Text = "✓ Cambios guardados.";
         await RefrescarCastigosAsync();
+    }
+
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  AGREGAR / ELIMINAR FILAS
+    // ════════════════════════════════════════════════════════════════════════
+
+    public void AgregarFilaCadetes(int año, Label lblEstado)
+    {
+        using var form = new FormAgregarCadete(año);
+        if (form.ShowDialog() != DialogResult.OK) return;
+        Task.Run(async () =>
+        {
+            try
+            {
+                var existente = await Program.Cadetes.GetByIdAsync(form.DNI);
+                if (existente is not null)
+                { Invoke(() => { lblEstado.ForeColor = Color.DarkOrange; lblEstado.Text = $"⚠ Ya existe un cadete con DNI {form.DNI}"; }); return; }
+                await Program.Cadetes.AddAsync(new Cadete
+                { DNI = form.DNI, ApellidosNombres = form.ApellidosNombres, Año = año, Division = form.Division });
+                var dgv = año == 3 ? dgvCadetes3 : año == 4 ? dgvCadetes4 : dgvCadetes5;
+                Invoke(async () =>
+                {
+                    lblEstado.ForeColor = Color.DarkGreen;
+                    lblEstado.Text = $"✓ {form.ApellidosNombres} agregado.";
+                    await RefrescarCadetesEnDgv(dgv, año, lblEstado);
+                });
+            }
+            catch (Exception ex) { Invoke(() => { lblEstado.ForeColor = Color.Red; lblEstado.Text = $"✗ {ex.Message}"; }); }
+        });
+    }
+
+    public void EliminarCadeteSeleccionado(DataGridView dgv, int año, Label lblEstado)
+    {
+        if (dgv.CurrentRow is null) return;
+        var dni = dgv.CurrentRow.Cells[1].Value?.ToString() ?? "";
+        var nombre = dgv.CurrentRow.Cells[2].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(dni)) return;
+
+        if (MessageBox.Show($"¿Eliminar a '{nombre}'?", "Confirmar",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Program.Cadetes.DeleteAsync(dni);
+                Invoke(async () =>
+                {
+                    lblEstado.ForeColor = Color.DarkGreen;
+                    lblEstado.Text = $"✓ '{nombre}' eliminado.";
+                    await RefrescarCadetesEnDgv(dgv, año, lblEstado);
+                });
+            }
+            catch (Exception ex) { Invoke(() => { lblEstado.ForeColor = Color.Red; lblEstado.Text = $"✗ {ex.Message}"; }); }
+        });
+    }
+
+    public void AgregarSupervisor(Label lblEstado)
+    {
+        using var form = new FormAgregarSupervisor();
+        if (form.ShowDialog() != DialogResult.OK) return;
+        Task.Run(async () =>
+        {
+            try
+            {
+                var existente = await Program.Supervisores.GetByIdAsync(form.DNI);
+                if (existente is not null)
+                { Invoke(() => { lblEstado.ForeColor = Color.DarkOrange; lblEstado.Text = $"⚠ Ya existe supervisor con DNI {form.DNI}"; }); return; }
+                await Program.Supervisores.AddAsync(new Supervisor
+                { DNI = form.DNI, Grado = form.Grado, ApellidosNombres = form.ApellidosNombres });
+                Invoke(async () =>
+                {
+                    lblEstado.ForeColor = Color.DarkGreen;
+                    lblEstado.Text = $"✓ {form.ApellidosNombres} agregado.";
+                    await RefrescarSupervisoresAsync();
+                });
+            }
+            catch (Exception ex) { Invoke(() => { lblEstado.ForeColor = Color.Red; lblEstado.Text = $"✗ {ex.Message}"; }); }
+        });
+    }
+
+    public void EliminarSupervisorSeleccionado(Label lblEstado)
+    {
+        if (dgvSupervisores.CurrentRow is null) return;
+        var dni = dgvSupervisores.CurrentRow.Cells[1].Value?.ToString() ?? "";
+        var nombre = dgvSupervisores.CurrentRow.Cells[3].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(dni)) return;
+
+        if (MessageBox.Show($"¿Eliminar a '{nombre}'?", "Confirmar",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Program.Supervisores.DeleteAsync(dni);
+                Invoke(async () =>
+                {
+                    lblEstado.ForeColor = Color.DarkGreen;
+                    lblEstado.Text = $"✓ '{nombre}' eliminado.";
+                    await RefrescarSupervisoresAsync();
+                });
+            }
+            catch (Exception ex) { Invoke(() => { lblEstado.ForeColor = Color.Red; lblEstado.Text = $"✗ {ex.Message}"; }); }
+        });
+    }
+
+
+    private void btnAgregarCadetes3_Click(object sender, EventArgs e) => AgregarFilaCadetes(3, lblEstadoCadetes3);
+    private void btnEliminarCadetes3_Click(object sender, EventArgs e) => EliminarCadeteSeleccionado(dgvCadetes3, 3, lblEstadoCadetes3);
+    private void btnAgregarCadetes4_Click(object sender, EventArgs e) => AgregarFilaCadetes(4, lblEstadoCadetes4);
+    private void btnEliminarCadetes4_Click(object sender, EventArgs e) => EliminarCadeteSeleccionado(dgvCadetes4, 4, lblEstadoCadetes4);
+    private void btnAgregarCadetes5_Click(object sender, EventArgs e) => AgregarFilaCadetes(5, lblEstadoCadetes5);
+    private void btnEliminarCadetes5_Click(object sender, EventArgs e) => EliminarCadeteSeleccionado(dgvCadetes5, 5, lblEstadoCadetes5);
+    private void btnAgregarSupervisores_Click(object sender, EventArgs e) => AgregarSupervisor(lblEstadoSupervisores);
+    private void btnEliminarSupervisores_Click(object sender, EventArgs e) => EliminarSupervisorSeleccionado(lblEstadoSupervisores);
+    private void btnAgregarCastigos_Click(object sender, EventArgs e)
+    {
+        using var form = new FormAgregarCastigo();
+        if (form.ShowDialog() != DialogResult.OK) return;
+        Task.Run(async () =>
+        {
+            try
+            {
+                var existente = await Program.Castigos.GetByIdAsync(form.Codigo);
+                if (existente is not null)
+                {
+                    Invoke(() => {
+                        lblEstadoCastigos.ForeColor = Color.DarkOrange;
+                        lblEstadoCastigos.Text = $"⚠ Ya existe el código {form.Codigo}";
+                    });
+                    return;
+                }
+                await Program.Castigos.AddAsync(new Domain.Entities.Castigo
+                {
+                    Codigo = form.Codigo,
+                    Descripcion = form.Descripcion,
+                    PuntosAño3Raw = form.PuntosIII,
+                    PuntosAño4Raw = form.PuntosIV,
+                    PuntosAño5Raw = form.PuntosV,
+                    Reincidencia = form.Reincidencia,
+                    Nota = form.Nota
+                });
+                Invoke(async () =>
+                {
+                    lblEstadoCastigos.ForeColor = Color.DarkGreen;
+                    lblEstadoCastigos.Text = $"✓ Castigo {form.Codigo} agregado.";
+                    await RefrescarCastigosAsync();
+                });
+            }
+            catch (Exception ex)
+            {
+                Invoke(() => {
+                    lblEstadoCastigos.ForeColor = Color.Red;
+                    lblEstadoCastigos.Text = $"✗ {ex.Message}";
+                });
+            }
+        });
+    }
+    private void btnEliminarCastigos_Click(object sender, EventArgs e)
+    {
+        if (dgvCastigos.CurrentRow is null) return;
+        var codigo = dgvCastigos.CurrentRow.Cells[1].Value?.ToString() ?? "";
+        var desc = dgvCastigos.CurrentRow.Cells[2].Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(codigo)) return;
+        if (MessageBox.Show($"¿Eliminar castigo '{codigo} - {desc}'?", "Confirmar",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Program.Castigos.DeleteAsync(codigo);
+                await Invoke(async () => {
+                    lblEstadoCastigos.ForeColor = Color.DarkGreen;
+                    lblEstadoCastigos.Text = $"✓ Castigo '{codigo}' eliminado.";
+                    await RefrescarCastigosAsync();
+                });
+            }
+            catch (Exception ex) { Invoke(() => { lblEstadoCastigos.ForeColor = Color.Red; lblEstadoCastigos.Text = $"✗ {ex.Message}"; }); }
+        });
+    }
+
+    // ── Clases para binding editable ─────────────────────────────────────
+    public class CadeteRow
+    {
+        public int N { get; set; }
+        public string DNI { get; set; } = "";
+        public string ApellidosNombres { get; set; } = "";
+        public string Division { get; set; } = "";
+    }
+
+    public class SupervisorRow
+    {
+        public int N { get; set; }
+        public string DNI { get; set; } = "";
+        public string Grado { get; set; } = "";
+        public string ApellidosNombres { get; set; } = "";
+    }
+
+    public class CastigoRow
+    {
+        public int N { get; set; }
+        public string Codigo { get; set; } = "";
+        public string Descripcion { get; set; } = "";
+        public string III { get; set; } = "";
+        public string IV { get; set; } = "";
+        public string V { get; set; } = "";
+        public int Reinc { get; set; }
+        public string Nota { get; set; } = "";
     }
 }
