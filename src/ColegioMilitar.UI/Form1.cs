@@ -329,6 +329,8 @@ public partial class Form1 : Form
                     ? new Font("Segoe UI", 9, FontStyle.Bold)
                     : new Font("Segoe UI", 9);
             }
+
+            dgvSalida.Refresh();
         }
         catch { }
     }
