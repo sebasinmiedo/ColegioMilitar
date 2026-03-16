@@ -38,30 +38,21 @@ public class FilaConsolidadoDto
 /// </summary>
 public class FilaPtosSalidaDto
 {
-    public string CadeteDNI        { get; set; } = string.Empty;
+    public string CadeteDNI { get; set; } = string.Empty;
     public string ApellidosNombres { get; set; } = string.Empty;
-    public int    Año              { get; set; }
-    public int    TotalPuntos      { get; set; }
+    public int Año { get; set; }
+    public int TotalPuntos { get; set; }
+    public int CantidadPV { get; set; } // cantidad de sanciones 1PV
 
-    /// <summary>
-    /// True si alguna sanción de la semana tiene EsPierdeSalida = true (código 1PV).
-    /// Esto fuerza "Pierde salida" sin importar los puntos acumulados.
-    /// </summary>
-    public bool TienePierdeSalida  { get; set; }
+    public string PtosDisplay => CantidadPV > 0
+        ? (CantidadPV == 1 ? "1PV" : $"{CantidadPV}PV")
+        : TotalPuntos.ToString();
 
-    /// <summary>
-    /// Lógica:
-    ///   1PV                 → "Pierde salida"
-    ///   puntos >= 20        → "Pierde salida"
-    ///   puntos >= 15        → "Sale domingo 07:00 hrs"
-    ///   puntos >= 10        → "Sale sábado 07:00 hrs"
-    ///   puntos < 10         → "Completa"
-    /// </summary>
-    public string Salida => TienePierdeSalida ? "Pierde salida" : TotalPuntos switch
+    public string Salida => CantidadPV > 0 ? "Pierde salida" : TotalPuntos switch
     {
         >= 20 => "Pierde salida",
         >= 15 => "Sale domingo 07:00 hrs",
         >= 10 => "Sale sábado 07:00 hrs",
-        _     => "Completa"
+        _ => "Completa"
     };
 }

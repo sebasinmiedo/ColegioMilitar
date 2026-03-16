@@ -27,4 +27,5 @@ public class Sancion
     public Cadete     Cadete     { get; set; } = null!;
     public Supervisor Supervisor { get; set; } = null!;
     public Castigo    Castigo    { get; set; } = null!;
+    public bool Perdonada { get; set; }
 }

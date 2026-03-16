@@ -80,4 +80,7 @@ public class SancionService
 
     public async Task<IEnumerable<Sancion>> ListarTodosAsync() =>
         await _sanciones.GetAllAsync();
+
+    public async Task PerdonarAsync(int id) => await _sanciones.PerdonarAsync(id);
+    public async Task DesperdonarAsync(int id) => await _sanciones.DesperdonarAsync(id);
 }

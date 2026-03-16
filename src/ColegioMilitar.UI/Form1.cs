@@ -222,6 +222,8 @@ public partial class Form1 : Form
                 {
                     filas.Add(new FilaSancionRow
                     {
+                        IdSancion = s.Id,          // ← agregar
+                        EsPerdonada = s.Perdonada,   // ← agregar
                         N = n++.ToString(),
                         Codigo = s.CadeteDNI,
                         ApellidosNombres = s.Cadete.ApellidosNombres,
@@ -244,9 +246,17 @@ public partial class Form1 : Form
                     {
                         filas.Add(new FilaSancionRow
                         {
+                            IdSancion = 0,
+                            EsPerdonada = false,
                             N = n++.ToString(),
                             Codigo = cadete.DNI,
-                            ApellidosNombres = cadete.ApellidosNombres
+                            ApellidosNombres = cadete.ApellidosNombres,
+                            Motivo = "",
+                            Ptos = "",
+                            Reinc = "",
+                            Hora = "",
+                            Fecha = "",
+                            Superior = ""
                         });
                     }
                     else
@@ -256,6 +266,8 @@ public partial class Form1 : Form
                         {
                             filas.Add(new FilaSancionRow
                             {
+                                IdSancion = s.Id,
+                                EsPerdonada = s.Perdonada,
                                 N = esPrimera ? n++.ToString() : "",
                                 Codigo = esPrimera ? cadete.DNI : "",
                                 ApellidosNombres = esPrimera ? cadete.ApellidosNombres : "",
@@ -275,32 +287,149 @@ public partial class Form1 : Form
             dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
             dgv.DataSource = filas;
 
-            if (dgv.Columns.Count < 9) return;
-            dgv.Columns[0].Width = 40; dgv.Columns[0].HeaderText = "N°";
-            dgv.Columns[1].Width = 85; dgv.Columns[1].HeaderText = "CÓDIGO";
-            dgv.Columns[2].Width = 230; dgv.Columns[2].HeaderText = "APELLIDOS Y NOMBRES";
-            dgv.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            dgv.Columns[3].HeaderText = "MOTIVO";
-            dgv.Columns[4].Width = 50; dgv.Columns[4].HeaderText = "PTOS";
-            dgv.Columns[5].Width = 50; dgv.Columns[5].HeaderText = "REINC";
-            dgv.Columns[6].Width = 60; dgv.Columns[6].HeaderText = "HORA";
-            dgv.Columns[7].Width = 85; dgv.Columns[7].HeaderText = "FECHA";
-            dgv.Columns[8].Width = 180; dgv.Columns[8].HeaderText = "SUPERIOR QUE CASTIGA";
+            if (dgv.Columns.Count < 11) return;
+
+            // Ocultar columnas internas
+            dgv.Columns[0].Visible = false;  // IdSancion
+            dgv.Columns[10].Visible = false; // EsPerdonada
+
+            // Configurar columnas visibles
+            dgv.Columns[1].Width = 40; dgv.Columns[1].HeaderText = "N°";
+            dgv.Columns[2].Width = 85; dgv.Columns[2].HeaderText = "CÓDIGO";
+            dgv.Columns[3].Width = 230; dgv.Columns[3].HeaderText = "APELLIDOS Y NOMBRES";
+            dgv.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dgv.Columns[4].HeaderText = "MOTIVO";
+            dgv.Columns[5].Width = 50; dgv.Columns[5].HeaderText = "PTOS";
+            dgv.Columns[6].Width = 50; dgv.Columns[6].HeaderText = "REINC";
+            dgv.Columns[7].Width = 60; dgv.Columns[7].HeaderText = "HORA";
+            dgv.Columns[8].Width = 85; dgv.Columns[8].HeaderText = "FECHA";
+            dgv.Columns[9].Width = 180; dgv.Columns[9].HeaderText = "SUPERIOR QUE CASTIGA";
         }
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace, "Error en RefrescarTabAsync");
         }
+
+        // Colorear perdonadas en gris claro
+        dgv.Columns["IdSancion"]!.Visible = false;
+        dgv.Columns["EsPerdonada"]!.Visible = false;
+
+        foreach (DataGridViewRow row in dgv.Rows)
+        {
+            if (row.DataBoundItem is FilaSancionRow fila && fila.EsPerdonada)
+            {
+                // Solo tachar columnas de sanción (Motivo, Ptos, Reinc, Hora, Fecha, Superior)
+                var coloreadas = new[] { 3, 4, 5, 6, 7, 8 };
+                foreach (var col in coloreadas)
+                {
+                    if (col < row.Cells.Count)
+                    {
+                        row.Cells[col].Style.ForeColor = Color.Silver;
+                        row.Cells[col].Style.Font = new Font("Segoe UI", 9, FontStyle.Strikeout);
+                    }
+                }
+            }
+        }
+
+        // Menú contextual
+        var menu = new ContextMenuStrip();
+        var itemModificar = new ToolStripMenuItem("✏️  Modificar sanción");
+        var itemPerdonar = new ToolStripMenuItem("🕊️  Perdonar sanción");
+        var itemEliminar = new ToolStripMenuItem("🗑️  Eliminar sanción");
+
+        itemModificar.Click += async (s, e) => await AccionSancion(dgv, "modificar");
+        itemPerdonar.Click += async (s, e) => await AccionSancion(dgv, "perdonar");
+        itemEliminar.Click += async (s, e) => await AccionSancion(dgv, "eliminar");
+
+        // Cambiar texto dinámicamente según si ya está perdonada
+        menu.Opening += (s, e) =>
+        {
+            if (dgv.CurrentRow?.DataBoundItem is FilaSancionRow f && f.EsPerdonada)
+                itemPerdonar.Text = "↩️  Revertir perdón";
+            else
+                itemPerdonar.Text = "🕊️  Perdonar sanción";
+        };
+
+        menu.Items.AddRange(new ToolStripItem[] { itemModificar, itemPerdonar, itemEliminar });
+        dgv.ContextMenuStrip = menu;
+
+    }
+
+    private async Task AccionSancion(DataGridView dgv, string accion)
+    {
+        if (dgv.CurrentRow?.DataBoundItem is not FilaSancionRow fila) return;
+        if (fila.IdSancion == 0) return;
+
+        // Buscar el nombre — puede estar en la fila actual o en la fila anterior
+        string nombre = fila.ApellidosNombres;
+        if (string.IsNullOrEmpty(nombre))
+        {
+            // Buscar hacia arriba hasta encontrar el nombre
+            int idx = dgv.CurrentRow.Index - 1;
+            while (idx >= 0)
+            {
+                if (dgv.Rows[idx].DataBoundItem is FilaSancionRow anterior
+                    && !string.IsNullOrEmpty(anterior.ApellidosNombres))
+                {
+                    nombre = anterior.ApellidosNombres;
+                    break;
+                }
+                idx--;
+            }
+        }
+
+        switch (accion)
+        {
+            case "perdonar":
+                if (fila.EsPerdonada)
+                {
+                    // Ya está perdonada — ofrecer desperdonar
+                    if (MessageBox.Show(
+                        $"Esta sanción de '{nombre}' ya está perdonada.\n¿Deseas revertir el perdón?",
+                        "Revertir perdón", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                        != DialogResult.Yes) return;
+                    await Program.SancionService.DesperdonarAsync(fila.IdSancion);
+                }
+                else
+                {
+                    if (MessageBox.Show(
+                        $"¿Perdonar la sanción de '{nombre}'?\n" +
+                        "No contará para puntos pero seguirá visible.",
+                        "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                        != DialogResult.Yes) return;
+                    await Program.SancionService.PerdonarAsync(fila.IdSancion);
+                }
+                break;
+
+            case "eliminar":
+                if (MessageBox.Show(
+                    $"¿Eliminar permanentemente la sanción de '{nombre}'?",
+                    "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning)
+                    != DialogResult.Yes) return;
+                await Program.SancionService.EliminarAsync(fila.IdSancion);
+                break;
+
+            case "modificar":
+                MessageBox.Show("Modificar sanción — próximamente.",
+                    "En desarrollo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+        }
+
+        await RefrescarTodosAsync();
     }
 
     private async Task RefrescarSalidaAsync(int semana)
     {
         try
         {
-            var filas = (await Program.ConsolidadoService.GenerarPtosSalidaAsync(semana))
+            var filas = (await Program.ConsolidadoService.GenerarPtosSalidaAsync(_semanaActivaSalida))
                 .Select((f, i) => new {
-                    N = i + 1, f.CadeteDNI, f.ApellidosNombres,
-                    Año = $"{f.Año}°", f.TotalPuntos, Salida = f.Salida
+                    N = i + 1,
+                    f.CadeteDNI,
+                    f.ApellidosNombres,
+                    Año = $"{f.Año}°",
+                    Ptos = f.PtosDisplay,  // ← usa PtosDisplay en vez de TotalPuntos
+                    Salida = f.Salida
                 }).ToList();
 
             dgvSalida.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
@@ -366,14 +495,16 @@ public partial class Form1 : Form
 
     private class FilaSancionRow
     {
-        public string N { get; set; } = "";
-        public string Codigo { get; set; } = "";
-        public string ApellidosNombres { get; set; } = "";
-        public string Motivo { get; set; } = "";
-        public string Ptos { get; set; } = "";
-        public string Reinc { get; set; } = "";
-        public string Hora { get; set; } = "";
-        public string Fecha { get; set; } = "";
-        public string Superior { get; set; } = "";
+        public int IdSancion { get; set; }  // col 0 — oculta
+        public string N { get; set; } = "";  // col 1
+        public string Codigo { get; set; } = "";  // col 2
+        public string ApellidosNombres { get; set; } = "";  // col 3
+        public string Motivo { get; set; } = "";  // col 4
+        public string Ptos { get; set; } = "";  // col 5
+        public string Reinc { get; set; } = "";  // col 6
+        public string Hora { get; set; } = "";  // col 7
+        public string Fecha { get; set; } = "";  // col 8
+        public string Superior { get; set; } = "";  // col 9
+        public bool EsPerdonada { get; set; }        // col 10 — oculta
     }
 }

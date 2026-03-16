@@ -58,24 +58,24 @@ public class ConsolidadoService
     /// Incluye todos los cadetes del año indicado (0 = todos los años).
     /// </summary>
     public async Task<IEnumerable<FilaPtosSalidaDto>> GenerarPtosSalidaAsync(
-        int semana, int añoCadete = 0)
+    int semana, int añoCadete = 0)
     {
         var sanciones = (await _sanciones.GetBySemanaBimestreAsync(semana)).ToList();
-        var cadetes   = añoCadete == 0
+        var cadetes = añoCadete == 0
             ? await _cadetes.GetAllAsync()
             : await _cadetes.GetByAñoAsync(añoCadete);
 
         return cadetes
             .Select(c => new FilaPtosSalidaDto
             {
-                CadeteDNI        = c.DNI,
+                CadeteDNI = c.DNI,
                 ApellidosNombres = c.ApellidosNombres,
-                Año              = c.Año,
-                TotalPuntos      = sanciones
-                    .Where(s => s.CadeteDNI == c.DNI)
+                Año = c.Año,
+                TotalPuntos = sanciones
+                    .Where(s => s.CadeteDNI == c.DNI && !s.EsPierdeSalida && !s.Perdonada)
                     .Sum(s => s.PuntosAplicados),
-                TienePierdeSalida = sanciones
-                    .Any(s => s.CadeteDNI == c.DNI && s.EsPierdeSalida)
+                                CantidadPV = sanciones
+                    .Count(s => s.CadeteDNI == c.DNI && s.EsPierdeSalida && !s.Perdonada)
             })
             .OrderBy(f => f.Año)
             .ThenBy(f => f.ApellidosNombres);

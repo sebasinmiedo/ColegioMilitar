@@ -87,9 +87,13 @@ public partial class FormRegistrarSancion : Form
             MostrarError(lblCastigoInfo, $"✗ No existe el código {codigo}");
         else
         {
-            int pts = _cadeteActual is not null
-                ? _castigoActual.GetPuntosPorAño(_cadeteActual.Año) : 0;
-            MostrarOk(lblCastigoInfo, $"✓ {_castigoActual.Descripcion}  |  {pts} pts");
+            string ptsDisplay = _cadeteActual is not null
+                ? (_castigoActual.EsPierdeSalida(_cadeteActual.Año)
+                    ? "1PV — Pierde salida"
+                    : $"{_castigoActual.GetPuntosPorAño(_cadeteActual.Año)} pts")
+                : "0 pts";
+
+            MostrarOk(lblCastigoInfo, $"✓ {_castigoActual.Descripcion}  |  {ptsDisplay}");
 
             if (_supervisorActual is not null) btnGuardar.Focus();
             else txtDNISupervisor.Focus();

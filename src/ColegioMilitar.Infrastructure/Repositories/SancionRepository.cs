@@ -108,4 +108,16 @@ public class SancionRepository : IRepository<Sancion, int>
             await _ctx.SaveChangesAsync();
         }
     }
+
+    public async Task PerdonarAsync(int id)
+    {
+        var s = await _ctx.Sanciones.FindAsync(id);
+        if (s is not null) { s.Perdonada = true; await _ctx.SaveChangesAsync(); }
+    }
+
+    public async Task DesperdonarAsync(int id)
+    {
+        var s = await _ctx.Sanciones.FindAsync(id);
+        if (s is not null) { s.Perdonada = false; await _ctx.SaveChangesAsync(); }
+    }
 }
