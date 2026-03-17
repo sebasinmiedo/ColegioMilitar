@@ -169,9 +169,23 @@ public partial class Form1 : Form
     private async void BtnSemanaSalida_Click(object sender, EventArgs e)
     {
         if (sender is not Button btn) return;
-        _semanaActivaSalida = btn.Tag is int s ? s : 0;
+        _semanaActivaSalida = btn.Tag is int s ? s : 1;
         ResaltarBotonActivo(pnlSemanasSalida, _semanaActivaSalida);
-        await RefrescarSalidaAsync(_semanaActivaSalida);
+
+        var formExistente = System.Windows.Forms.Application.OpenForms
+            .OfType<FormRelacionSalida>().FirstOrDefault();
+
+        if (formExistente is null)
+        {
+            var form = new FormRelacionSalida();
+            await form.SetSemanaAsync(_semanaActivaSalida);
+            form.Show(this);
+        }
+        else
+        {
+            await formExistente.SetSemanaAsync(_semanaActivaSalida);
+            formExistente.BringToFront();
+        }
     }
 
     // mantener compatibilidad con Designer
@@ -422,44 +436,16 @@ public partial class Form1 : Form
     {
         try
         {
-            var filas = (await Program.ConsolidadoService.GenerarPtosSalidaAsync(_semanaActivaSalida))
-                .Select((f, i) => new {
-                    N = i + 1,
-                    f.CadeteDNI,
-                    f.ApellidosNombres,
-                    Año = $"{f.Año}°",
-                    Ptos = f.PtosDisplay,  // ← usa PtosDisplay en vez de TotalPuntos
-                    Salida = f.Salida
-                }).ToList();
+            // Abrir formulario flotante de relación de salida
+            var formExistente = System.Windows.Forms.Application.OpenForms
+                .OfType<FormRelacionSalida>().FirstOrDefault();
 
-            dgvSalida.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-            dgvSalida.DataSource = filas;
-
-            if (dgvSalida.Columns.Count < 6) return;
-            dgvSalida.Columns[0].Width = 40;  dgvSalida.Columns[0].HeaderText = "N°";
-            dgvSalida.Columns[1].Width = 90;  dgvSalida.Columns[1].HeaderText = "DNI";
-            dgvSalida.Columns[2].Width = 280; dgvSalida.Columns[2].HeaderText = "APELLIDOS Y NOMBRES";
-            dgvSalida.Columns[3].Width = 50;  dgvSalida.Columns[3].HeaderText = "AÑO";
-            dgvSalida.Columns[4].Width = 60;  dgvSalida.Columns[4].HeaderText = "PTOS";
-            dgvSalida.Columns[5].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-                                                dgvSalida.Columns[5].HeaderText = "SALIDA";
-
-            foreach (DataGridViewRow row in dgvSalida.Rows)
+            if (formExistente is not null)
             {
-                var salida = row.Cells[5].Value?.ToString() ?? "";
-                row.DefaultCellStyle.ForeColor = salida switch
-                {
-                    "Pierde salida"          => Color.Red,
-                    "Sale domingo 07:00 hrs" => Color.OrangeRed,
-                    "Sale sábado 07:00 hrs"  => Color.DarkOrange,
-                    _                        => Color.DarkGreen
-                };
-                row.DefaultCellStyle.Font = salida == "Pierde salida"
-                    ? new Font("Segoe UI", 9, FontStyle.Bold)
-                    : new Font("Segoe UI", 9);
+                await formExistente.SetSemanaAsync(semana);
+                formExistente.BringToFront();
             }
-
-            dgvSalida.Refresh();
+            // Si no está abierto, se abre desde el botón
         }
         catch { }
     }
