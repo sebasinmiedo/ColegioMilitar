@@ -36,10 +36,22 @@ partial class Form1
         tlpResumenSalida   = new TableLayoutPanel();
         lblResumenTitulo   = new Label();
         lblResumenSemana   = new Label();
-        lblResumenViernes  = new Label();
-        lblResumenSabado   = new Label();
-        lblResumenDomingo  = new Label();
-        lblResumenTotal    = new Label();
+        lblResumenVAnoVie   = new Label();
+        lblResumenVAnoSab   = new Label();
+        lblResumenVAnoDom   = new Label();
+        lblResumenVAnoTot   = new Label();
+        lblResumenIVAnoVie  = new Label();
+        lblResumenIVAnoSab  = new Label();
+        lblResumenIVAnoDom  = new Label();
+        lblResumenIVAnoTot  = new Label();
+        lblResumenIIIAVie   = new Label();
+        lblResumenIIIASab   = new Label();
+        lblResumenIIIADom   = new Label();
+        lblResumenIIIATot   = new Label();
+        lblResumenTotalVie  = new Label();
+        lblResumenTotalSab  = new Label();
+        lblResumenTotalDom  = new Label();
+        lblResumenTotalTot  = new Label();
         tlpTablasSalida    = new TableLayoutPanel();
         pnlTablaSalida3    = new Panel();
         pnlTablaSalida4    = new Panel();
@@ -217,12 +229,12 @@ partial class Form1
         pnlSalidaContent.Dock = DockStyle.Fill;
 
         pnlResumenSalida.Dock      = DockStyle.Top;
-        pnlResumenSalida.Height    = 150;
+        pnlResumenSalida.Height    = 230;
         pnlResumenSalida.BackColor = Color.White;
         pnlResumenSalida.Padding   = new Padding(12);
         pnlResumenSalida.BorderStyle = BorderStyle.FixedSingle;
 
-        lblResumenTitulo.Text      = "Resumen semanal de raciones";
+        lblResumenTitulo.Text      = "RACIONES";
         lblResumenTitulo.Font      = new Font("Segoe UI", 12, FontStyle.Bold);
         lblResumenTitulo.ForeColor = Color.FromArgb(40, 80, 140);
         lblResumenTitulo.Dock      = DockStyle.Top;
@@ -236,44 +248,78 @@ partial class Form1
         lblResumenSemana.Height    = 18;
         lblResumenSemana.TextAlign = ContentAlignment.MiddleCenter;
 
-        tlpResumenSalida.ColumnCount = 4;
-        tlpResumenSalida.RowCount    = 2;
-        tlpResumenSalida.Dock        = DockStyle.Top;
-        tlpResumenSalida.Height      = 82;
-        tlpResumenSalida.Margin      = new Padding(0, 10, 0, 0);
+        tlpResumenSalida.ColumnCount = 5;
+        tlpResumenSalida.RowCount    = 5;
+        tlpResumenSalida.AutoSize    = true;
+        tlpResumenSalida.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        tlpResumenSalida.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
         tlpResumenSalida.ColumnStyles.Clear();
+        tlpResumenSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
         for (int i = 0; i < 4; i++)
-            tlpResumenSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            tlpResumenSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
         tlpResumenSalida.RowStyles.Clear();
-        tlpResumenSalida.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-        tlpResumenSalida.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+        for (int i = 0; i < 5; i++)
+            tlpResumenSalida.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+        tlpResumenSalida.Margin = new Padding(0, 12, 0, 0);
 
-        string[] encabezados = { "VIERNES", "SÁBADO", "DOMINGO", "TOTAL" };
-        var valores = new[] { lblResumenViernes, lblResumenSabado, lblResumenDomingo, lblResumenTotal };
-
-        for (int i = 0; i < 4; i++)
+        string[] encabezados = { "AÑOS", "VIE", "SAB", "DOM", "TOTAL" };
+        for (int i = 0; i < encabezados.Length; i++)
         {
-            var encabezado = new Label
+            tlpResumenSalida.Controls.Add(new Label
             {
                 Text      = encabezados[i],
                 Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(70, 70, 70),
-                Dock      = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
                 BackColor = Color.FromArgb(240, 240, 240),
-                Margin    = new Padding(2)
-            };
-
-            valores[i].Font      = new Font("Segoe UI", 11, FontStyle.Bold);
-            valores[i].ForeColor = Color.FromArgb(40, 40, 40);
-            valores[i].TextAlign = ContentAlignment.MiddleCenter;
-            valores[i].Dock      = DockStyle.Fill;
-            valores[i].Margin    = new Padding(2);
-            valores[i].Text      = "0";
-
-            tlpResumenSalida.Controls.Add(encabezado, i, 0);
-            tlpResumenSalida.Controls.Add(valores[i], i, 1);
+                Dock      = DockStyle.Fill,
+                Margin    = new Padding(0)
+            }, i, 0);
         }
+
+        void AddResumenRow(int row, string titulo, Label vie, Label sab, Label dom, Label tot,
+            Color rowColor, Color dayHighlight, Color totalColumnColor)
+        {
+            var tituloLabel = new Label
+            {
+                Text      = titulo,
+                Font      = new Font("Segoe UI", 9, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock      = DockStyle.Fill,
+                BackColor = Color.FromArgb(245, 245, 245),
+                Margin    = new Padding(0)
+            };
+            tlpResumenSalida.Controls.Add(tituloLabel, 0, row);
+
+            var valores = new[] { vie, sab, dom, tot };
+            for (int col = 0; col < valores.Length; col++)
+            {
+                var ctrl = valores[col];
+                ctrl.Font      = new Font("Segoe UI", 9, FontStyle.Bold);
+                ctrl.TextAlign = ContentAlignment.MiddleCenter;
+                ctrl.Dock      = DockStyle.Fill;
+                ctrl.Margin    = new Padding(0);
+                ctrl.Text      = "0";
+                if (row == 4 && col < 3)
+                    ctrl.BackColor = dayHighlight;
+                else if (col == 3)
+                    ctrl.BackColor = totalColumnColor;
+                else
+                    ctrl.BackColor = rowColor;
+
+                tlpResumenSalida.Controls.Add(ctrl, col + 1, row);
+            }
+        }
+
+        AddResumenRow(1, "V AÑO", lblResumenVAnoVie, lblResumenVAnoSab, lblResumenVAnoDom, lblResumenVAnoTot,
+            Color.FromArgb(255, 235, 205), Color.FromArgb(255, 210, 150), Color.FromArgb(230, 200, 150));
+        AddResumenRow(2, "IV AÑO", lblResumenIVAnoVie, lblResumenIVAnoSab, lblResumenIVAnoDom, lblResumenIVAnoTot,
+            Color.FromArgb(210, 245, 215), Color.FromArgb(210, 245, 215), Color.FromArgb(200, 230, 190));
+        AddResumenRow(3, "III AÑO", lblResumenIIIAVie, lblResumenIIIASab, lblResumenIIIADom, lblResumenIIIATot,
+            Color.FromArgb(210, 220, 255), Color.FromArgb(190, 210, 255), Color.FromArgb(170, 190, 255));
+        AddResumenRow(4, "TOTAL", lblResumenTotalVie, lblResumenTotalSab, lblResumenTotalDom, lblResumenTotalTot,
+            Color.FromArgb(200, 220, 240), Color.FromArgb(255, 205, 140), Color.FromArgb(180, 200, 230));
+
 
         tlpTablasSalida.ColumnCount = 3;
         tlpTablasSalida.RowCount    = 1;
@@ -294,9 +340,15 @@ partial class Form1
 
         pnlSalidaContent.Controls.Add(tlpTablasSalida);
         pnlSalidaContent.Controls.Add(pnlResumenSalida);
-        pnlResumenSalida.Controls.Add(tlpResumenSalida);
-        pnlResumenSalida.Controls.Add(lblResumenSemana);
         pnlResumenSalida.Controls.Add(lblResumenTitulo);
+        pnlResumenSalida.Controls.Add(lblResumenSemana);
+        pnlResumenSalida.Controls.Add(tlpResumenSalida);
+        tlpResumenSalida.Location = new Point(0, lblResumenSemana.Bottom + 14);
+        pnlResumenSalida.SizeChanged += (s, e) =>
+        {
+            tlpResumenSalida.Left = Math.Max((pnlResumenSalida.ClientSize.Width - tlpResumenSalida.Width) / 2, 0);
+            tlpResumenSalida.Top = lblResumenSemana.Bottom + 14;
+        };
 
         tabSalida.Controls.Add(pnlSalidaContent);
         tabSalida.Controls.Add(pnlSemanasSalida);
@@ -365,7 +417,10 @@ partial class Form1
     private Panel             pnlSalidaContent, pnlResumenSalida;
     private TableLayoutPanel  tlpResumenSalida, tlpTablasSalida;
     private Label             lblResumenTitulo, lblResumenSemana;
-    private Label             lblResumenViernes, lblResumenSabado, lblResumenDomingo, lblResumenTotal;
+    private Label             lblResumenVAnoVie, lblResumenVAnoSab, lblResumenVAnoDom, lblResumenVAnoTot;
+    private Label             lblResumenIVAnoVie, lblResumenIVAnoSab, lblResumenIVAnoDom, lblResumenIVAnoTot;
+    private Label             lblResumenIIIAVie, lblResumenIIIASab, lblResumenIIIADom, lblResumenIIIATot;
+    private Label             lblResumenTotalVie, lblResumenTotalSab, lblResumenTotalDom, lblResumenTotalTot;
     private Label             lblSalidaTitulo;
     private Panel             pnlTablaSalida3, pnlTablaSalida4, pnlTablaSalida5;
     private Label             lblTablaSalida3, lblTablaSalida4, lblTablaSalida5;

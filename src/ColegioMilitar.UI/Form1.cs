@@ -441,22 +441,38 @@ public partial class Form1 : Form
 
     private void ActualizarResumenSalida()
     {
-        var datos = _datosSalida;
-        int ptosMayorIg10 = datos.Count(f => f.TotalPuntos >= 10 || f.CantidadPV > 0);
-        int ptosMenor15 = datos.Count(f => f.TotalPuntos < 15 && f.CantidadPV == 0);
-        int ptosMenor10 = datos.Count(f => f.TotalPuntos < 10 && f.CantidadPV == 0);
-        int ptosMayorIg20 = datos.Count(f => f.TotalPuntos >= 20 || f.CantidadPV > 0);
+        var rowV = CalcularFilaResumen(5, lblResumenVAnoVie, lblResumenVAnoSab, lblResumenVAnoDom, lblResumenVAnoTot);
+        var rowIV = CalcularFilaResumen(4, lblResumenIVAnoVie, lblResumenIVAnoSab, lblResumenIVAnoDom, lblResumenIVAnoTot);
+        var rowIII = CalcularFilaResumen(3, lblResumenIIIAVie, lblResumenIIIASab, lblResumenIIIADom, lblResumenIIIATot);
+
+        lblResumenTotalVie.Text = (rowV.Vie + rowIV.Vie + rowIII.Vie).ToString();
+        lblResumenTotalSab.Text = (rowV.Sab + rowIV.Sab + rowIII.Sab).ToString();
+        lblResumenTotalDom.Text = (rowV.Dom + rowIV.Dom + rowIII.Dom).ToString();
+        lblResumenTotalTot.Text = (rowV.Vie + rowV.Sab + rowV.Dom
+                                 + rowIV.Vie + rowIV.Sab + rowIV.Dom
+                                 + rowIII.Vie + rowIII.Sab + rowIII.Dom).ToString();
+    }
+
+    private (int Vie, int Sab, int Dom) CalcularFilaResumen(
+        int año, Label lblVie, Label lblSab, Label lblDom, Label lblTot)
+    {
+        var datosAño = _datosSalida.Where(f => f.Año == año).ToList();
+        int ptosMayorIg10 = datosAño.Count(f => f.TotalPuntos >= 10 || f.CantidadPV > 0);
+        int ptosMenor15 = datosAño.Count(f => f.TotalPuntos < 15 && f.CantidadPV == 0);
+        int ptosMenor10 = datosAño.Count(f => f.TotalPuntos < 10 && f.CantidadPV == 0);
+        int ptosMayorIg20 = datosAño.Count(f => f.TotalPuntos >= 20 || f.CantidadPV > 0);
 
         int viernes = ptosMayorIg10;
         int sabado = viernes - (ptosMenor15 - ptosMenor10);
         int domingo = ptosMayorIg20;
-
         sabado = Math.Max(0, sabado);
 
-        lblResumenViernes.Text = viernes.ToString();
-        lblResumenSabado.Text  = sabado.ToString();
-        lblResumenDomingo.Text = domingo.ToString();
-        lblResumenTotal.Text   = (viernes + sabado + domingo).ToString();
+        lblVie.Text = viernes.ToString();
+        lblSab.Text = sabado.ToString();
+        lblDom.Text = domingo.ToString();
+        lblTot.Text = (viernes + sabado + domingo).ToString();
+
+        return (viernes, sabado, domingo);
     }
 
     private void RefrescarTablaSalida(int año, DataGridView dgv)
