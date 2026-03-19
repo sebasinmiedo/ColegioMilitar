@@ -1,5 +1,6 @@
 using ColegioMilitar.UI.Forms;
 using ColegioMilitar.Domain.Entities;
+using ColegioMilitar.Application.DTOs;
 
 namespace ColegioMilitar.UI;
 
@@ -13,6 +14,7 @@ public partial class Form1 : Form
     private int _semanaActivaSalida = 0;
 
     private List<BimestreConfig> _semanasActuales = new();
+    private List<FilaPtosSalidaDto> _datosSalida = new();
 
     public Form1() { InitializeComponent(); }
 
@@ -171,26 +173,8 @@ public partial class Form1 : Form
         if (sender is not Button btn) return;
         _semanaActivaSalida = btn.Tag is int s ? s : 1;
         ResaltarBotonActivo(pnlSemanasSalida, _semanaActivaSalida);
-
-        var formExistente = System.Windows.Forms.Application.OpenForms
-            .OfType<FormRelacionSalida>().FirstOrDefault();
-
-        if (formExistente is null)
-        {
-            var form = new FormRelacionSalida();
-            await form.SetSemanaAsync(_semanaActivaSalida);
-            form.Show(this);
-        }
-        else
-        {
-            await formExistente.SetSemanaAsync(_semanaActivaSalida);
-            formExistente.BringToFront();
-        }
+        await RefrescarSalidaAsync(_semanaActivaSalida);
     }
-
-    // mantener compatibilidad con Designer
-    private async void BtnSemana3_Salida_Click(object sender, EventArgs e) =>
-        await Task.CompletedTask;
 
     private static void ResaltarBotonActivo(Panel pnl, int semana)
     {
@@ -436,18 +420,101 @@ public partial class Form1 : Form
     {
         try
         {
-            // Abrir formulario flotante de relación de salida
-            var formExistente = System.Windows.Forms.Application.OpenForms
-                .OfType<FormRelacionSalida>().FirstOrDefault();
+            _datosSalida = (await Program.ConsolidadoService
+                .GenerarPtosSalidaAsync(semana)).ToList();
 
-            if (formExistente is not null)
-            {
-                await formExistente.SetSemanaAsync(semana);
-                formExistente.BringToFront();
-            }
-            // Si no está abierto, se abre desde el botón
+            var semanaConfig = _semanasActuales.FirstOrDefault(s => s.NroSemana == semana);
+            lblResumenSemana.Text = semanaConfig is not null
+                ? $"{semanaConfig.NombreSemana} — Semana {semanaConfig.NroSemana}"
+                : $"Semana {semana}";
+
+            ActualizarResumenSalida();
+            RefrescarTablaSalida(3, dgvSalida3);
+            RefrescarTablaSalida(4, dgvSalida4);
+            RefrescarTablaSalida(5, dgvSalida5);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Relación de Salida", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void ActualizarResumenSalida()
+    {
+        var datos = _datosSalida;
+        int ptosMayorIg10 = datos.Count(f => f.TotalPuntos >= 10 || f.CantidadPV > 0);
+        int ptosMenor15 = datos.Count(f => f.TotalPuntos < 15 && f.CantidadPV == 0);
+        int ptosMenor10 = datos.Count(f => f.TotalPuntos < 10 && f.CantidadPV == 0);
+        int ptosMayorIg20 = datos.Count(f => f.TotalPuntos >= 20 || f.CantidadPV > 0);
+
+        int viernes = ptosMayorIg10;
+        int sabado = viernes - (ptosMenor15 - ptosMenor10);
+        int domingo = ptosMayorIg20;
+
+        sabado = Math.Max(0, sabado);
+
+        lblResumenViernes.Text = viernes.ToString();
+        lblResumenSabado.Text  = sabado.ToString();
+        lblResumenDomingo.Text = domingo.ToString();
+        lblResumenTotal.Text   = (viernes + sabado + domingo).ToString();
+    }
+
+    private void RefrescarTablaSalida(int año, DataGridView dgv)
+    {
+        var filas = _datosSalida
+            .Where(f => f.Año == año)
+            .Select((f, i) => new
+            {
+                N = i + 1,
+                f.CadeteDNI,
+                f.ApellidosNombres,
+                Ptos = f.PtosDisplay,
+                f.Salida,
+                Orden = f.TotalPuntos + (f.CantidadPV > 0 ? 999 : 0)
+            })
+            .OrderBy(f => f.Orden)
+            .Select(f => new
+            {
+                f.N,
+                f.CadeteDNI,
+                f.ApellidosNombres,
+                f.Ptos,
+                f.Salida
+            })
+            .ToList();
+
+        dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+        dgv.DataSource = filas;
+
+        if (dgv.Columns.Count >= 5)
+        {
+            dgv.Columns[0].Width = 40;
+            dgv.Columns[0].HeaderText = "N°";
+            dgv.Columns[1].Width = 90;
+            dgv.Columns[1].HeaderText = "DNI";
+            dgv.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dgv.Columns[2].HeaderText = "APELLIDOS Y NOMBRES";
+            dgv.Columns[3].Width = 60;
+            dgv.Columns[3].HeaderText = "PTOS";
+            dgv.Columns[4].Width = 200;
+            dgv.Columns[4].HeaderText = "SALIDA";
+        }
+
+        foreach (DataGridViewRow row in dgv.Rows)
+        {
+            var salida = row.Cells[4].Value?.ToString() ?? "";
+            var color = salida switch
+            {
+                "Pierde salida"           => Color.FromArgb(255, 200, 200),
+                "Sale domingo 07:00 hrs" => Color.FromArgb(255, 220, 180),
+                "Sale sábado 07:00 hrs"   => Color.FromArgb(255, 240, 200),
+                _                         => Color.FromArgb(200, 240, 200)
+            };
+            row.DefaultCellStyle.BackColor = color;
+            row.DefaultCellStyle.ForeColor = Color.Black;
+            row.DefaultCellStyle.SelectionBackColor = Color.FromArgb(180, 200, 240);
+            row.DefaultCellStyle.SelectionForeColor = Color.Black;
+        }
     }
 
     // ── Botones de acción ────────────────────────────────────────────────
