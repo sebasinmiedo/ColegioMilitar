@@ -469,16 +469,6 @@ public partial class Form1 : Form
                 f.CadeteDNI,
                 f.ApellidosNombres,
                 Ptos = f.PtosDisplay,
-                f.Salida,
-                Orden = f.TotalPuntos + (f.CantidadPV > 0 ? 999 : 0)
-            })
-            .OrderBy(f => f.Orden)
-            .Select(f => new
-            {
-                f.N,
-                f.CadeteDNI,
-                f.ApellidosNombres,
-                f.Ptos,
                 f.Salida
             })
             .ToList();
@@ -499,7 +489,10 @@ public partial class Form1 : Form
             dgv.Columns[4].Width = 200;
             dgv.Columns[4].HeaderText = "SALIDA";
         }
+    }
 
+    private static void AplicarColoresSalida(DataGridView dgv)
+    {
         foreach (DataGridViewRow row in dgv.Rows)
         {
             var salida = row.Cells[4].Value?.ToString() ?? "";
@@ -515,6 +508,8 @@ public partial class Form1 : Form
             row.DefaultCellStyle.SelectionBackColor = Color.FromArgb(180, 200, 240);
             row.DefaultCellStyle.SelectionForeColor = Color.Black;
         }
+        dgv.ClearSelection();
+        dgv.Refresh();
     }
 
     // ── Botones de acción ────────────────────────────────────────────────

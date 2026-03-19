@@ -319,6 +319,7 @@ partial class Form1
         label.TextAlign = ContentAlignment.MiddleCenter;
 
         ConfigurarDgv(dgv);
+        dgv.DataBindingComplete += (s, e) => AplicarColoresSalida(dgv);
         dgv.Dock = DockStyle.Fill;
 
         panel.Controls.Add(dgv);
