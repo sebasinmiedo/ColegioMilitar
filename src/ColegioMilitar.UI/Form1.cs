@@ -96,53 +96,55 @@ public partial class Form1 : Form
 
     private void ConfigurarTabSalida()
     {
-        tabSalida.Text    = "  RELACIÓN DE SALIDA  ";
+        tabSalida.Text = "  RELACIÓN DE SALIDA  ";
         tabSalida.Padding = new Padding(5);
 
-        lblSalidaTitulo.Text      = "RELACIÓN DE SALIDA — RACIONES";
-        lblSalidaTitulo.Font      = new Font("Segoe UI", 11, FontStyle.Bold);
+        lblSalidaTitulo.Text = "RELACIÓN DE SALIDA — RACIONES";
+        lblSalidaTitulo.Font = new Font("Segoe UI", 11, FontStyle.Bold);
         lblSalidaTitulo.ForeColor = Color.FromArgb(30, 60, 120);
-        lblSalidaTitulo.Dock      = DockStyle.Top;
-        lblSalidaTitulo.Height    = 30;
+        lblSalidaTitulo.Dock = DockStyle.Top;
+        lblSalidaTitulo.Height = 30;
         lblSalidaTitulo.TextAlign = ContentAlignment.MiddleLeft;
-        lblSalidaTitulo.Padding   = new Padding(4, 0, 0, 0);
+        lblSalidaTitulo.Padding = new Padding(4, 0, 0, 0);
 
-        pnlSemanasSalida.Dock      = DockStyle.Top;
-        pnlSemanasSalida.Height    = 40;
+        pnlSemanasSalida.Dock = DockStyle.Top;
+        pnlSemanasSalida.Height = 40;
         pnlSemanasSalida.BackColor = Color.FromArgb(235, 240, 250);
 
         pnlSalidaContent.Dock = DockStyle.Fill;
 
+        // ── Tabla resumen de raciones ────────────────────────────────────────
         tlpResumenSalida.Controls.Clear();
-        tlpTablasSalida.Controls.Clear();
-
         tlpResumenSalida.ColumnCount = 5;
-        tlpResumenSalida.RowCount    = 5;
-        tlpResumenSalida.AutoSize    = true;
+        tlpResumenSalida.RowCount = 5;
+        tlpResumenSalida.AutoSize = true;
         tlpResumenSalida.AutoSizeMode = AutoSizeMode.GrowOnly;
         tlpResumenSalida.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
         tlpResumenSalida.Dock = DockStyle.None;
+        tlpResumenSalida.Location = new Point(14, 68);
+        tlpResumenSalida.Margin = new Padding(0);
+
         tlpResumenSalida.ColumnStyles.Clear();
-        tlpResumenSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+        tlpResumenSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100F));
         for (int i = 0; i < 4; i++)
             tlpResumenSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
+
         tlpResumenSalida.RowStyles.Clear();
         for (int i = 0; i < 5; i++)
             tlpResumenSalida.RowStyles.Add(new RowStyle(SizeType.Absolute, 30F));
-        tlpResumenSalida.Margin = new Padding(0, 16, 0, 12);
 
         string[] encabezados = { "AÑOS", "VIE", "SAB", "DOM", "TOTAL" };
         for (int i = 0; i < encabezados.Length; i++)
         {
             tlpResumenSalida.Controls.Add(new Label
             {
-                Text      = encabezados[i],
-                Font      = new Font("Segoe UI", 9, FontStyle.Bold),
+                Text = encabezados[i],
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 ForeColor = Color.FromArgb(65, 65, 65),
                 TextAlign = ContentAlignment.MiddleCenter,
                 BackColor = Color.FromArgb(230, 231, 235),
-                Dock      = DockStyle.Fill,
-                Margin    = new Padding(0),
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0),
             }, i, 0);
         }
 
@@ -155,15 +157,46 @@ public partial class Form1 : Form
         AgregarFilaResumen(4, "TOTAL", lblResumenTotalVie, lblResumenTotalSab, lblResumenTotalDom, lblResumenTotalTot,
             Color.FromArgb(200, 220, 240), Color.FromArgb(180, 200, 230), Color.FromArgb(255, 205, 140));
 
+        // ── Panel contenedor del resumen ─────────────────────────────────────
+        pnlResumenSalida.Controls.Clear();
+        pnlResumenSalida.BackColor = Color.White;
+        pnlResumenSalida.Dock = DockStyle.None;
+        pnlResumenSalida.Anchor = AnchorStyles.None;
+        pnlResumenSalida.AutoSize = false;
+        pnlResumenSalida.Size = new Size(420, 230);
+        pnlResumenSalida.Padding = new Padding(0);
+        pnlResumenSalida.BorderStyle = BorderStyle.FixedSingle;
+
+        lblResumenTitulo.Text = "RACIONES";
+        lblResumenTitulo.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+        lblResumenTitulo.ForeColor = Color.FromArgb(40, 80, 140);
+        lblResumenTitulo.TextAlign = ContentAlignment.MiddleCenter;
+        lblResumenTitulo.Dock = DockStyle.None;
+        lblResumenTitulo.Location = new Point(0, 8);
+        lblResumenTitulo.Size = new Size(398, 28);
+
+        lblResumenSemana.Text = "Semana --";
+        lblResumenSemana.Font = new Font("Segoe UI", 9, FontStyle.Italic);
+        lblResumenSemana.ForeColor = Color.FromArgb(90, 90, 90);
+        lblResumenSemana.TextAlign = ContentAlignment.MiddleCenter;
+        lblResumenSemana.Dock = DockStyle.None;
+        lblResumenSemana.Location = new Point(0, 40);
+        lblResumenSemana.Size = new Size(398, 18);
+
+        pnlResumenSalida.Controls.Add(lblResumenTitulo);
+        pnlResumenSalida.Controls.Add(lblResumenSemana);
+        pnlResumenSalida.Controls.Add(tlpResumenSalida);
+
+        // ── Tablas por año (3 columnas) ──────────────────────────────────────
+        tlpTablasSalida.Controls.Clear();
         tlpTablasSalida.ColumnCount = 3;
-        tlpTablasSalida.RowCount    = 1;
-        tlpTablasSalida.Dock        = DockStyle.Fill;
+        tlpTablasSalida.RowCount = 1;
+        tlpTablasSalida.Dock = DockStyle.Fill;
         tlpTablasSalida.ColumnStyles.Clear();
         for (int i = 0; i < 3; i++)
             tlpTablasSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
         tlpTablasSalida.RowStyles.Clear();
         tlpTablasSalida.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
         tlpTablasSalida.Margin = new Padding(12, 4, 12, 12);
 
         BuildSalidaPanel(pnlTablaSalida3, lblTablaSalida3, dgvSalida3, "3ER AÑO", Color.FromArgb(30, 90, 160));
@@ -174,36 +207,7 @@ public partial class Form1 : Form
         tlpTablasSalida.Controls.Add(pnlTablaSalida4, 1, 0);
         tlpTablasSalida.Controls.Add(pnlTablaSalida5, 2, 0);
 
-        pnlResumenSalida.Controls.Clear();
-        pnlResumenSalida.BackColor = Color.White;
-        pnlResumenSalida.Dock = DockStyle.None;
-        pnlResumenSalida.Anchor = AnchorStyles.None;
-        pnlResumenSalida.AutoSize = true;
-        pnlResumenSalida.AutoSizeMode = AutoSizeMode.GrowOnly;
-        pnlResumenSalida.Padding = new Padding(14, 10, 14, 14);
-        pnlResumenSalida.Margin = new Padding(0, 0, 0, 12);
-        pnlResumenSalida.BorderStyle = BorderStyle.FixedSingle;
-
-        lblResumenTitulo.Text = "RACIONES";
-        lblResumenTitulo.Font = new Font("Segoe UI", 12, FontStyle.Bold);
-        lblResumenTitulo.ForeColor = Color.FromArgb(40, 80, 140);
-        lblResumenTitulo.TextAlign = ContentAlignment.MiddleCenter;
-        lblResumenTitulo.Dock = DockStyle.Top;
-        lblResumenTitulo.Height = 32;
-        lblResumenTitulo.Margin = new Padding(0, 0, 0, 6);
-
-        lblResumenSemana.Text = "Semana --";
-        lblResumenSemana.Font = new Font("Segoe UI", 9, FontStyle.Italic);
-        lblResumenSemana.ForeColor = Color.FromArgb(90, 90, 90);
-        lblResumenSemana.TextAlign = ContentAlignment.MiddleCenter;
-        lblResumenSemana.Dock = DockStyle.Top;
-        lblResumenSemana.Height = 18;
-        lblResumenSemana.Margin = new Padding(0, 0, 0, 10);
-
-        pnlResumenSalida.Controls.Add(lblResumenTitulo);
-        pnlResumenSalida.Controls.Add(lblResumenSemana);
-        pnlResumenSalida.Controls.Add(tlpResumenSalida);
-
+        // ── Layout principal del tab ─────────────────────────────────────────
         var tablasWrapper = new TableLayoutPanel
         {
             RowCount = 2,
@@ -223,7 +227,11 @@ public partial class Form1 : Form
             ColumnCount = 3,
             RowCount = 1,
             AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.None,
+            Anchor = AnchorStyles.None,
+            Padding = new Padding(0),
+            Margin = new Padding(0, 20, 0, 4)
         };
         resumenHolder.ColumnStyles.Clear();
         resumenHolder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
@@ -231,20 +239,15 @@ public partial class Form1 : Form
         resumenHolder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
         resumenHolder.RowStyles.Clear();
         resumenHolder.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        resumenHolder.Padding = new Padding(0);
-        resumenHolder.Margin = new Padding(0, 8, 0, 4);
-        resumenHolder.Dock = DockStyle.None;
-        resumenHolder.Anchor = AnchorStyles.None;
         resumenHolder.Controls.Add(pnlResumenSalida, 1, 0);
 
         pnlSalidaContent.Controls.Clear();
         pnlSalidaContent.Padding = new Padding(12, 10, 12, 10);
         pnlSalidaContent.Controls.Add(tablasWrapper);
-        var leftSpacer = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
-        var rightSpacer = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
-        tablasWrapper.Controls.Add(leftSpacer, 0, 0);
+
+        tablasWrapper.Controls.Add(new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) }, 0, 0);
         tablasWrapper.Controls.Add(resumenHolder, 1, 0);
-        tablasWrapper.Controls.Add(rightSpacer, 2, 0);
+        tablasWrapper.Controls.Add(new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) }, 2, 0);
         tablasWrapper.Controls.Add(tlpTablasSalida, 0, 1);
         tablasWrapper.SetColumnSpan(tlpTablasSalida, 3);
 

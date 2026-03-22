@@ -21,7 +21,8 @@ public partial class FormRelacionSalida : Form
     public async Task SetSemanaAsync(int semana)
     {
         _semanaActiva = semana;
-        await CargarDatosAsync();
+        if (IsHandleCreated)
+            await CargarDatosAsync();
     }
 
     private async Task CargarDatosAsync()
@@ -37,25 +38,18 @@ public partial class FormRelacionSalida : Form
 
     private async Task RefrescarAñoAsync(int año, DataGridView dgv, Panel pnlRaciones)
     {
-        var filas = _datos
-            .Where(f => f.Año == año)
+        var datosAño = _datos.Where(f => f.Año == año).ToList();
+
+        var filas = datosAño
+            .OrderBy(f => f.CantidadPV > 0 ? 9999 : f.TotalPuntos)
+            .ThenBy(f => f.ApellidosNombres)
             .Select((f, i) => new
             {
                 N                = i + 1,
-                f.CadeteDNI,
-                f.ApellidosNombres,
+                DNI              = f.CadeteDNI,
+                ApellidosNombres = f.ApellidosNombres,
                 Ptos             = f.PtosDisplay,
-                PtosNum          = f.TotalPuntos + (f.CantidadPV > 0 ? 999 : 0), // para ordenar PV al final
                 Salida           = f.Salida
-            })
-            .OrderBy(f => f.PtosNum)
-            .Select((f, i) => new
-            {
-                N                = i + 1,
-                f.CadeteDNI,
-                f.ApellidosNombres,
-                f.Ptos,
-                f.Salida
             })
             .ToList();
 
@@ -72,50 +66,38 @@ public partial class FormRelacionSalida : Form
             dgv.Columns[4].Width      = 200; dgv.Columns[4].HeaderText = "SALIDA";
         }
 
-        // Colorear por estado
+        // Colorear filas por estado de salida
         foreach (DataGridViewRow row in dgv.Rows)
         {
             var salida = row.Cells[4].Value?.ToString() ?? "";
-            var color = salida switch
+            row.DefaultCellStyle.BackColor = salida switch
             {
                 "Pierde salida"          => Color.FromArgb(255, 200, 200),
                 "Sale domingo 07:00 hrs" => Color.FromArgb(255, 220, 180),
                 "Sale sábado 07:00 hrs"  => Color.FromArgb(255, 240, 200),
                 _                        => Color.FromArgb(200, 240, 200)
             };
-            row.DefaultCellStyle.BackColor  = color;
-            row.DefaultCellStyle.ForeColor  = Color.Black;
-            row.DefaultCellStyle.SelectionBackColor = Color.FromArgb(180, 200, 240);
-            row.DefaultCellStyle.SelectionForeColor = Color.Black;
+            row.DefaultCellStyle.ForeColor           = Color.Black;
+            row.DefaultCellStyle.SelectionBackColor  = Color.FromArgb(180, 200, 240);
+            row.DefaultCellStyle.SelectionForeColor  = Color.Black;
         }
 
         // Actualizar tabla de raciones
-        var datosAño = _datos.Where(f => f.Año == año).ToList();
-        ActualizarRaciones(pnlRaciones, datosAño, año);
-
+        ActualizarRaciones(pnlRaciones, datosAño);
         await Task.CompletedTask;
     }
 
-    private static void ActualizarRaciones(Panel pnl, List<FilaPtosSalidaDto> datos, int año)
+    private static void ActualizarRaciones(Panel pnl, List<FilaPtosSalidaDto> datos)
     {
-        // Fórmulas:
-        // Viernes  = cadetes con ptos >= 10 (no salen completo)  → los que NO salen completo
-        // Sábado   = Viernes - (cadetes con ptos >= 10 y < 15)
-        // Domingo  = cadetes con ptos >= 20
+        // Viernes  = CONTAR.SI(ptos >= 10) — los que NO salen completo
+        // Sábado   = Viernes - (CONTAR.SI(ptos<15) - CONTAR.SI(ptos<10))
+        // Domingo  = CONTAR.SI(ptos >= 20)
+        int viernes = datos.Count(f => f.TotalPuntos >= 10 || f.CantidadPV > 0);
+        int menorQ15 = datos.Count(f => f.TotalPuntos < 15 && f.CantidadPV == 0);
+        int menorQ10 = datos.Count(f => f.TotalPuntos < 10 && f.CantidadPV == 0);
+        int sabado   = viernes - (menorQ15 - menorQ10);
+        int domingo  = datos.Count(f => f.TotalPuntos >= 20 || f.CantidadPV > 0);
 
-        int totalCadetes = datos.Count;
-
-        int conPV       = datos.Count(f => f.CantidadPV > 0);
-        int ptosMayorIg10 = datos.Count(f => f.TotalPuntos >= 10 || f.CantidadPV > 0);
-        int ptosMenor15   = datos.Count(f => f.TotalPuntos < 15 && f.CantidadPV == 0);
-        int ptosMenor10   = datos.Count(f => f.TotalPuntos < 10 && f.CantidadPV == 0);
-        int ptosMayorIg20 = datos.Count(f => f.TotalPuntos >= 20 || f.CantidadPV > 0);
-
-        int viernes = ptosMayorIg10;
-        int sabado  = viernes - (ptosMenor15 - ptosMenor10);
-        int domingo = ptosMayorIg20;
-
-        // Actualizar labels en el panel
         if (pnl.Tag is RacionesLabels labels)
         {
             labels.LblViernes.Text = viernes.ToString();
@@ -127,58 +109,56 @@ public partial class FormRelacionSalida : Form
 
     private void RefrescarResumen()
     {
-        // Tab resumen — tabla consolidada de los 3 años
         var años = new[] { 3, 4, 5 };
-        var resumen = años.Select(año =>
+        var filas = años.Select(año =>
         {
-            var datosAño = _datos.Where(f => f.Año == año).ToList();
-            int ptosMayorIg10 = datosAño.Count(f => f.TotalPuntos >= 10 || f.CantidadPV > 0);
-            int ptosMenor15   = datosAño.Count(f => f.TotalPuntos < 15 && f.CantidadPV == 0);
-            int ptosMenor10   = datosAño.Count(f => f.TotalPuntos < 10 && f.CantidadPV == 0);
-            int ptosMayorIg20 = datosAño.Count(f => f.TotalPuntos >= 20 || f.CantidadPV > 0);
+            var d = _datos.Where(f => f.Año == año).ToList();
+            int vie = d.Count(f => f.TotalPuntos >= 10 || f.CantidadPV > 0);
+            int m15 = d.Count(f => f.TotalPuntos < 15 && f.CantidadPV == 0);
+            int m10 = d.Count(f => f.TotalPuntos < 10 && f.CantidadPV == 0);
+            int sab = vie - (m15 - m10);
+            int dom = d.Count(f => f.TotalPuntos >= 20 || f.CantidadPV > 0);
+            return new { Años = $"{año}° AÑO", Vie = vie, Sab = sab, Dom = dom, Total = vie + sab + dom };
+        }).ToList<object>();
 
-            int vie = ptosMayorIg10;
-            int sab = vie - (ptosMenor15 - ptosMenor10);
-            int dom = ptosMayorIg20;
-
-            return new { Año = $"{año}° AÑO", Vie = vie, Sab = sab, Dom = dom, Total = vie + sab + dom };
-        }).ToList();
-
-        var totales = new
+        // Fila total
+        var tots = filas.Cast<dynamic>().ToList();
+        filas.Add(new
         {
-            Año   = "TOTAL",
-            Vie   = resumen.Sum(r => r.Vie),
-            Sab   = resumen.Sum(r => r.Sab),
-            Dom   = resumen.Sum(r => r.Dom),
-            Total = resumen.Sum(r => r.Total)
-        };
+            Años  = "TOTAL",
+            Vie   = tots.Sum(r => (int)r.Vie),
+            Sab   = tots.Sum(r => (int)r.Sab),
+            Dom   = tots.Sum(r => (int)r.Dom),
+            Total = tots.Sum(r => (int)r.Total)
+        });
 
-        var filas = resumen.Cast<object>().Append(totales).ToList();
         dgvResumen.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
         dgvResumen.DataSource = filas;
 
         if (dgvResumen.Columns.Count >= 5)
         {
-            dgvResumen.Columns[0].Width      = 100; dgvResumen.Columns[0].HeaderText = "AÑOS";
-            dgvResumen.Columns[1].Width      = 80;  dgvResumen.Columns[1].HeaderText = "VIERNES";
-            dgvResumen.Columns[2].Width      = 80;  dgvResumen.Columns[2].HeaderText = "SÁBADO";
-            dgvResumen.Columns[3].Width      = 80;  dgvResumen.Columns[3].HeaderText = "DOMINGO";
-            dgvResumen.Columns[4].Width      = 80;  dgvResumen.Columns[4].HeaderText = "TOTAL";
+            dgvResumen.Columns[0].Width      = 120; dgvResumen.Columns[0].HeaderText = "AÑOS";
+            dgvResumen.Columns[1].Width      = 100; dgvResumen.Columns[1].HeaderText = "VIERNES";
+            dgvResumen.Columns[2].Width      = 100; dgvResumen.Columns[2].HeaderText = "SÁBADO";
+            dgvResumen.Columns[3].Width      = 100; dgvResumen.Columns[3].HeaderText = "DOMINGO";
+            dgvResumen.Columns[4].Width      = 100; dgvResumen.Columns[4].HeaderText = "TOTAL";
         }
 
-        // Colorear fila TOTAL
         foreach (DataGridViewRow row in dgvResumen.Rows)
         {
             if (row.Cells[0].Value?.ToString() == "TOTAL")
             {
-                row.DefaultCellStyle.BackColor = Color.FromArgb(100, 160, 100);
+                row.DefaultCellStyle.BackColor = Color.FromArgb(60, 130, 60);
                 row.DefaultCellStyle.ForeColor = Color.White;
                 row.DefaultCellStyle.Font      = new Font("Segoe UI", 9, FontStyle.Bold);
+            }
+            else
+            {
+                row.DefaultCellStyle.BackColor = Color.FromArgb(220, 240, 220);
             }
         }
     }
 
-    // Clase helper para referencias a labels de raciones
     public class RacionesLabels
     {
         public Label LblViernes { get; set; } = null!;
