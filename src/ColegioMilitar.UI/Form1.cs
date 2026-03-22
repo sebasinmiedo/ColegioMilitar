@@ -121,6 +121,7 @@ public partial class Form1 : Form
         tlpResumenSalida.AutoSize    = true;
         tlpResumenSalida.AutoSizeMode = AutoSizeMode.GrowOnly;
         tlpResumenSalida.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
+        tlpResumenSalida.Dock = DockStyle.None;
         tlpResumenSalida.ColumnStyles.Clear();
         tlpResumenSalida.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
         for (int i = 0; i < 4; i++)
@@ -175,7 +176,8 @@ public partial class Form1 : Form
 
         pnlResumenSalida.Controls.Clear();
         pnlResumenSalida.BackColor = Color.White;
-        pnlResumenSalida.Dock = DockStyle.Top;
+        pnlResumenSalida.Dock = DockStyle.None;
+        pnlResumenSalida.Anchor = AnchorStyles.None;
         pnlResumenSalida.AutoSize = true;
         pnlResumenSalida.AutoSizeMode = AutoSizeMode.GrowOnly;
         pnlResumenSalida.Padding = new Padding(14, 10, 14, 14);
@@ -198,22 +200,53 @@ public partial class Form1 : Form
         lblResumenSemana.Height = 18;
         lblResumenSemana.Margin = new Padding(0, 0, 0, 10);
 
-        tlpResumenSalida.Anchor = AnchorStyles.None;
-        tlpResumenSalida.Margin = new Padding(0);
-
         pnlResumenSalida.Controls.Add(lblResumenTitulo);
         pnlResumenSalida.Controls.Add(lblResumenSemana);
         pnlResumenSalida.Controls.Add(tlpResumenSalida);
 
-        pnlResumenSalida.SizeChanged -= ResumenSalida_SizeChanged;
-        pnlResumenSalida.SizeChanged += ResumenSalida_SizeChanged;
-        pnlResumenSalida.PerformLayout();
-        ReposicionarResumenSalida();
+        var tablasWrapper = new TableLayoutPanel
+        {
+            RowCount = 2,
+            ColumnCount = 3,
+            Dock = DockStyle.Fill
+        };
+        tablasWrapper.RowStyles.Clear();
+        tablasWrapper.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        tablasWrapper.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        tablasWrapper.ColumnStyles.Clear();
+        tablasWrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        tablasWrapper.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        tablasWrapper.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+
+        var resumenHolder = new TableLayoutPanel
+        {
+            ColumnCount = 3,
+            RowCount = 1,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink
+        };
+        resumenHolder.ColumnStyles.Clear();
+        resumenHolder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        resumenHolder.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        resumenHolder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        resumenHolder.RowStyles.Clear();
+        resumenHolder.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        resumenHolder.Padding = new Padding(0);
+        resumenHolder.Margin = new Padding(0, 8, 0, 4);
+        resumenHolder.Dock = DockStyle.None;
+        resumenHolder.Anchor = AnchorStyles.None;
+        resumenHolder.Controls.Add(pnlResumenSalida, 1, 0);
 
         pnlSalidaContent.Controls.Clear();
         pnlSalidaContent.Padding = new Padding(12, 10, 12, 10);
-        pnlSalidaContent.Controls.Add(pnlResumenSalida);
-        pnlSalidaContent.Controls.Add(tlpTablasSalida);
+        pnlSalidaContent.Controls.Add(tablasWrapper);
+        var leftSpacer = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
+        var rightSpacer = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
+        tablasWrapper.Controls.Add(leftSpacer, 0, 0);
+        tablasWrapper.Controls.Add(resumenHolder, 1, 0);
+        tablasWrapper.Controls.Add(rightSpacer, 2, 0);
+        tablasWrapper.Controls.Add(tlpTablasSalida, 0, 1);
+        tablasWrapper.SetColumnSpan(tlpTablasSalida, 3);
 
         tabSalida.Controls.Clear();
         tabSalida.Controls.Add(pnlSalidaContent);
@@ -262,16 +295,6 @@ public partial class Form1 : Form
 
             tlpResumenSalida.Controls.Add(ctrl, col + 1, fila);
         }
-    }
-
-    private void ResumenSalida_SizeChanged(object? sender, EventArgs e) =>
-        ReposicionarResumenSalida();
-
-    private void ReposicionarResumenSalida()
-    {
-        if (tlpResumenSalida.Width == 0 || pnlResumenSalida.ClientSize.Width == 0) return;
-        tlpResumenSalida.Left = Math.Max((pnlResumenSalida.ClientSize.Width - tlpResumenSalida.Width) / 2, 0);
-        tlpResumenSalida.Top = lblResumenSemana.Bottom + 10;
     }
 
     private static void BuildSalidaPanel(Panel panel, Label label, DataGridView dgv,
