@@ -14,6 +14,7 @@ public partial class FormRelacionSalida : Form
 
     private async void FormRelacionSalida_Load(object sender, EventArgs e)
     {
+        lblFecha.Text = DateTime.Today.ToString("dd/MM/yyyy");
         await CargarDatosAsync();
     }
 

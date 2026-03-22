@@ -10,10 +10,10 @@ public class FormAgregarCastigo : Form
     public int    Reincidencia { get; private set; }
     public string Nota        { get; private set; } = "";
 
-    private TextBox txtCodigo, txtDescripcion, txtIII, txtIV, txtV, txtReinc, txtNota;
-    private Button  btnOk, btnCancelar;
-    private Label   lblTitulo, lblCodigo, lblDescripcion, lblIII, lblIV, lblV,
-                    lblReinc, lblNota, lblHint, lblEstado;
+    private TextBox txtCodigo = null!, txtDescripcion = null!, txtIII = null!, txtIV = null!, txtV = null!, txtReinc = null!, txtNota = null!;
+    private Button  btnOk = null!, btnCancelar = null!;
+    private Label   lblTitulo = null!, lblCodigo = null!, lblDescripcion = null!, lblIII = null!, lblIV = null!, lblV = null!,
+                    lblReinc = null!, lblNota = null!, lblHint = null!, lblEstado = null!;
 
     public FormAgregarCastigo() { InitUI(); }
 
