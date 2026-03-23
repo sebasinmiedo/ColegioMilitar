@@ -35,8 +35,25 @@ public partial class Form1 : Form
         await CargarBotonesSemanasAsync();
         PositionarEnSemanaActual();
         await RefrescarTodosAsync();
+        CargarReporteBimestralAsync();
     }
 
+    private void CargarReporteBimestralAsync()
+    {
+        tabReporteBimestral.Controls.Clear();
+
+        var reporte = new FormReporteBimestral(
+            _bimestreActivo, _añoAcademico, _semanasActuales);
+
+        reporte.TopLevel = false;
+        reporte.FormBorderStyle = FormBorderStyle.None;
+        reporte.Dock = DockStyle.Fill;
+
+        tabReporteBimestral.Controls.Add(reporte);
+        reporte.Show();
+
+        _ = reporte.CargarDatosAsync();  // ← llama al método público
+    }
 
     private void ConfigurarBotonesAcciones()
     {
@@ -399,6 +416,7 @@ public partial class Form1 : Form
         await CargarBotonesSemanasAsync();
         PositionarEnSemanaActual();
         await RefrescarTodosAsync();
+        CargarReporteBimestralAsync();
     }
 
     private void RebuildSemanaButtons(Panel pnl, EventHandler handler, bool incluirTodas = true)
