@@ -35,7 +35,8 @@ partial class FormReporteBimestral
 
         // Header
         pnlHeader.Dock      = DockStyle.Top;
-        pnlHeader.Height    = 58;
+        //pnlHeader.Height    = 58;
+        pnlHeader.Visible = false;
         pnlHeader.BackColor = Color.FromArgb(30, 60, 120);
 
         lblTitulo.Text      = "REGISTRO DE NOTAS DE CONDUCTA Y ACTITUD MILITAR";
@@ -70,7 +71,7 @@ partial class FormReporteBimestral
         lblEstado.Location  = new Point(248, 12);
         lblEstado.Size      = new Size(700, 20);
         lblEstado.Font      = new Font("Segoe UI", 9);
-        lblEstado.Text      = "💡 Haz doble clic en ACTITUD MIL para editar. Se guarda automáticamente al salir de la celda.";
+        lblEstado.Text      = "💡 Doble clic en ACTITUD MIL para editar — se guarda al salir de la celda. El botón guarda TODAS las actitudes de una vez.";
         lblEstado.ForeColor = Color.FromArgb(80, 80, 80);
 
         pnlAcciones.Controls.AddRange(new Control[] { btnGuardar, lblEstado });
@@ -145,6 +146,7 @@ partial class FormReporteBimestral
         dgv.ColumnHeadersBorderStyle                  = DataGridViewHeaderBorderStyle.Single;
         dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(180, 210, 240);
         dgv.DefaultCellStyle.SelectionForeColor = Color.Black;
+        dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.White;
     }
 
     private Panel        pnlHeader;

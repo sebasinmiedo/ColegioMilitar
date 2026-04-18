@@ -42,13 +42,13 @@ public class FilaPtosSalidaDto
     public string ApellidosNombres { get; set; } = string.Empty;
     public int Año { get; set; }
     public int TotalPuntos { get; set; }
-    public int CantidadPV { get; set; } // cantidad de sanciones 1PV
+    public int CantidadPV { get; set; }
 
     public string PtosDisplay => CantidadPV > 0
-        ? (CantidadPV == 1 ? "1PV" : $"{CantidadPV}PV")
-        : TotalPuntos.ToString();
+         ? $"{TotalPuntos} ({(CantidadPV == 1 ? "1PV" : $"{CantidadPV}PV")})"
+         : TotalPuntos.ToString();
 
-    public string Salida => CantidadPV > 0 ? "Pierde salida" : TotalPuntos switch
+    public string Salida => TotalPuntos switch
     {
         >= 20 => "Pierde salida",
         >= 15 => "Sale domingo 07:00 hrs",

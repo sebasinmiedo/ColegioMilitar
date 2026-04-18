@@ -18,9 +18,9 @@ public partial class FormReporteBimestral : Form
         InitializeComponent();
     }
 
-    // Llamado desde Form1 después del Show()
     public async Task CargarDatosAsync()
     {
+        _actitudesMil.Clear();
         await CargarTabAsync(3, dgv3);
         await CargarTabAsync(4, dgv4);
         await CargarTabAsync(5, dgv5);
@@ -44,28 +44,32 @@ public partial class FormReporteBimestral : Form
         dgv.Rows.Clear();
         dgv.AutoGenerateColumns = false;
 
+        // ── Columnas fijas ────────────────────────────────────────────────
         dgv.Columns.Add(new DataGridViewTextBoxColumn
         {
-            Name = "N", HeaderText = "N°", Width = 40, ReadOnly = true,
+            Name = "N", HeaderText = "N°", Width = 45, ReadOnly = true,
             DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
         });
         dgv.Columns.Add(new DataGridViewTextBoxColumn
         {
-            Name = "DNI", HeaderText = "DNI", Width = 85, ReadOnly = true,
+            Name = "DNI", HeaderText = "DNI", Width = 95, ReadOnly = true,
             DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleCenter }
         });
         dgv.Columns.Add(new DataGridViewTextBoxColumn
         {
-            Name = "Nombre", HeaderText = "APELLIDOS Y NOMBRES", Width = 230, ReadOnly = true
+            Name = "Nombre", HeaderText = "APELLIDOS Y NOMBRES", Width = 250, ReadOnly = true,
+            DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleLeft,
+                                 Padding   = new Padding(4, 0, 0, 0) }
         });
 
+        // ── Columnas dinámicas de semanas ─────────────────────────────────
         foreach (var sem in _semanas)
         {
             dgv.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name       = $"Sem{sem.NroSemana}",
                 HeaderText = sem.NombreSemana,
-                Width      = 80,
+                Width      = 95,
                 ReadOnly   = true,
                 DefaultCellStyle = {
                     Alignment = DataGridViewContentAlignment.MiddleCenter,
@@ -74,16 +78,17 @@ public partial class FormReporteBimestral : Form
             });
         }
 
-        AgregarColumnaCalc(dgv, "Puntos",   "PUNTOS",    65, Color.FromArgb(230, 235, 255));
-        AgregarColumnaCalc(dgv, "PtosDism", "PTOS DISM", 75, Color.FromArgb(230, 235, 255));
-        AgregarColumnaCalc(dgv, "NotaBase", "NOTA",      55, Color.FromArgb(225, 240, 225));
-        AgregarColumnaCalc(dgv, "Conducta", "CONDUCTA",  75, Color.FromArgb(225, 240, 225));
+        // ── Columnas de cálculo ───────────────────────────────────────────
+        AgregarColumnaCalc(dgv, "Puntos",   "PUNTOS",    75,  Color.FromArgb(230, 235, 255));
+        AgregarColumnaCalc(dgv, "PtosDism", "PTOS DISM", 85,  Color.FromArgb(230, 235, 255));
+        AgregarColumnaCalc(dgv, "NotaBase", "NOTA",      65,  Color.FromArgb(225, 240, 225));
+        AgregarColumnaCalc(dgv, "Conducta", "CONDUCTA",  85,  Color.FromArgb(225, 240, 225));
 
         dgv.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name       = "ActitudMil",
             HeaderText = "ACTITUD MIL",
-            Width      = 90,
+            Width      = 100,
             ReadOnly   = false,
             DefaultCellStyle = {
                 Alignment = DataGridViewContentAlignment.MiddleCenter,
@@ -92,8 +97,9 @@ public partial class FormReporteBimestral : Form
             }
         });
 
-        AgregarColumnaCalc(dgv, "NotaFinal", "NOTA FINAL", 85, Color.FromArgb(210, 235, 210));
+        AgregarColumnaCalc(dgv, "NotaFinal", "NOTA FINAL", 95, Color.FromArgb(210, 235, 210));
 
+        // ── Llenar filas ──────────────────────────────────────────────────
         int n = 1;
         foreach (var f in filas)
         {
@@ -121,30 +127,35 @@ public partial class FormReporteBimestral : Form
                 row.Cells[colIdx++].Value = pts;
             }
 
-            int     total    = ptosSemana.Sum();
-            decimal dism     = Math.Round(total * 0.1m, 2);
-            decimal nota     = 20m;
-            decimal conducta = nota - dism;
-            decimal actitud  = _actitudesMil.TryGetValue(f.CadeteDNI, out var a) ? a : 0m;
+            int     total     = ptosSemana.Sum();
+            decimal dism      = Math.Round(total * 0.1m, 2);
+            decimal nota      = 20m;
+            decimal conducta  = nota - dism;
+            decimal actitud   = _actitudesMil.TryGetValue(f.CadeteDNI, out var a) ? a : 0m;
             decimal notaFinal = Math.Round((conducta + actitud) / 2m, 2);
 
             row.Cells[colIdx++].Value = total;
             row.Cells[colIdx++].Value = dism.ToString("F2");
             row.Cells[colIdx++].Value = nota.ToString("F2");
             row.Cells[colIdx++].Value = conducta.ToString("F2");
-            row.Cells[colIdx++].Value = actitud == 0 ? "" : actitud.ToString("F2");
+            // Actitud: siempre con 2 decimales, incluso si es 0
+            row.Cells[colIdx++].Value = actitud.ToString("F2");
             row.Cells[colIdx++].Value = notaFinal.ToString("F2");
 
             row.Tag = f.CadeteDNI;
             dgv.Rows.Add(row);
         }
 
-        for (int i = 0; i < dgv.Rows.Count; i++)
-            if (i % 2 == 1)
-                dgv.Rows[i].DefaultCellStyle.BackColor = Color.FromArgb(248, 250, 255);
+        // Sin colores alternados — fondo blanco uniforme
+        dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.White;
 
         dgv.CellEndEdit -= DgvCellEndEdit;
         dgv.CellEndEdit += DgvCellEndEdit;
+
+        // Forzar fondo blanco en TODAS las celdas de todas las filas
+        foreach (DataGridViewRow row in dgv.Rows)
+            row.DefaultCellStyle.BackColor = Color.White;
+
     }
 
     private static void AgregarColumnaCalc(DataGridView dgv, string name,
@@ -152,10 +163,10 @@ public partial class FormReporteBimestral : Form
     {
         dgv.Columns.Add(new DataGridViewTextBoxColumn
         {
-            Name     = name,
+            Name       = name,
             HeaderText = header,
-            Width    = width,
-            ReadOnly = true,
+            Width      = width,
+            ReadOnly   = true,
             DefaultCellStyle = {
                 Alignment = DataGridViewContentAlignment.MiddleCenter,
                 BackColor = backColor,
@@ -163,6 +174,8 @@ public partial class FormReporteBimestral : Form
             }
         });
     }
+
+    // ── Edición de Actitud Militar ────────────────────────────────────────
 
     private async void DgvCellEndEdit(object? sender, DataGridViewCellEventArgs e)
     {
@@ -176,11 +189,10 @@ public partial class FormReporteBimestral : Form
         if (!decimal.TryParse(rawVal.Replace(",", "."),
             System.Globalization.NumberStyles.Any,
             System.Globalization.CultureInfo.InvariantCulture, out decimal actitud))
-        {
             actitud = 0m;
-            row.Cells["ActitudMil"].Value = "";
-        }
 
+        // Formatear con 2 decimales inmediatamente
+        row.Cells["ActitudMil"].Value = actitud.ToString("F2");
         _actitudesMil[dni] = actitud;
 
         if (decimal.TryParse(row.Cells["Conducta"].Value?.ToString(),
@@ -197,6 +209,8 @@ public partial class FormReporteBimestral : Form
         }
         catch { }
     }
+
+    // ── Botón Guardar — útil para guardar TODAS de una sola vez ──────────
 
     private async void btnGuardar_Click(object sender, EventArgs e)
     {
@@ -215,7 +229,7 @@ public partial class FormReporteBimestral : Form
         }
 
         lblEstado.ForeColor = Color.DarkGreen;
-        lblEstado.Text      = $"✓ {guardados} notas guardadas.";
+        lblEstado.Text      = $"✓ {guardados} notas guardadas correctamente.";
         btnGuardar.Enabled  = true;
     }
 }

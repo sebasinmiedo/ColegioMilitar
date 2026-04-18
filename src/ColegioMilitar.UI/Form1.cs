@@ -12,6 +12,8 @@ public partial class Form1 : Form
     private int _semanaActiva4     = 0;
     private int _semanaActiva5     = 0;
     private int _semanaActivaSalida = 0;
+    
+    private FormReporteBimestral? _reporteBimestral;
 
     private List<BimestreConfig> _semanasActuales = new();
     private List<FilaPtosSalidaDto> _datosSalida = new();
@@ -41,18 +43,18 @@ public partial class Form1 : Form
     private void CargarReporteBimestralAsync()
     {
         tabReporteBimestral.Controls.Clear();
+        _reporteBimestral = null;
 
-        var reporte = new FormReporteBimestral(
+        _reporteBimestral = new FormReporteBimestral(
             _bimestreActivo, _añoAcademico, _semanasActuales);
 
-        reporte.TopLevel = false;
-        reporte.FormBorderStyle = FormBorderStyle.None;
-        reporte.Dock = DockStyle.Fill;
+        _reporteBimestral.TopLevel = false;
+        _reporteBimestral.FormBorderStyle = FormBorderStyle.None;
+        _reporteBimestral.Dock = DockStyle.Fill;
 
-        tabReporteBimestral.Controls.Add(reporte);
-        reporte.Show();
-
-        _ = reporte.CargarDatosAsync();  // ← llama al método público
+        tabReporteBimestral.Controls.Add(_reporteBimestral);
+        _reporteBimestral.Show();
+        _ = _reporteBimestral.CargarDatosAsync();
     }
 
     private void ConfigurarBotonesAcciones()
@@ -745,6 +747,8 @@ public partial class Form1 : Form
         }
 
         await RefrescarTodosAsync();
+        if (_reporteBimestral is not null)
+            _ = _reporteBimestral.CargarDatosAsync();
     }
 
     private async Task RefrescarSalidaAsync(int semana)
@@ -818,7 +822,7 @@ public partial class Form1 : Form
                 f.Salida,
                 PtosNum = f.TotalPuntos + (f.CantidadPV > 0 ? 999 : 0)
             })
-            .OrderBy(f => f.PtosNum)
+            .OrderBy(f => f.ApellidosNombres)
             .Select((f, i) => new
             {
                 N = i + 1,
@@ -891,6 +895,7 @@ public partial class Form1 : Form
         new FormConfigBimestre().ShowDialog(this);
         await CargarBotonesSemanasAsync();
         await RefrescarTodosAsync();
+        CargarReporteBimestralAsync();
     }
 
     private async void btnRefrescar_Click(object sender, EventArgs e)

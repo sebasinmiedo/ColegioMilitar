@@ -34,7 +34,9 @@ public class ConsolidadoService
         return cadetes.Select(cadete =>
         {
             var sc = sanciones.Where(s => s.CadeteDNI == cadete.DNI).ToList();
-            int PtosSemana(int sem) => sc.Where(s => s.SemanaBimestre == sem).Sum(s => s.PuntosAplicados);
+            int PtosSemana(int sem) => sc
+                .Where(s => s.SemanaBimestre == sem && !s.Perdonada)
+                .Sum(s => s.EsPierdeSalida ? 20 : s.PuntosAplicados);
             var actitud = actitudes.FirstOrDefault(a => a.CadeteDNI == cadete.DNI);
 
             return new FilaConsolidadoDto
@@ -72,9 +74,9 @@ public class ConsolidadoService
                 ApellidosNombres = c.ApellidosNombres,
                 Año = c.Año,
                 TotalPuntos = sanciones
-                    .Where(s => s.CadeteDNI == c.DNI && !s.EsPierdeSalida && !s.Perdonada)
-                    .Sum(s => s.PuntosAplicados),
-                                CantidadPV = sanciones
+                    .Where(s => s.CadeteDNI == c.DNI && !s.Perdonada)
+                    .Sum(s => s.EsPierdeSalida ? 20 : s.PuntosAplicados),
+                CantidadPV = sanciones
                     .Count(s => s.CadeteDNI == c.DNI && s.EsPierdeSalida && !s.Perdonada)
             })
             .OrderBy(f => f.Año)
