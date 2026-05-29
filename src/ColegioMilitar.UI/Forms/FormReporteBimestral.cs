@@ -28,8 +28,10 @@ public partial class FormReporteBimestral : Form
 
     private async Task CargarTabAsync(int añoCadete, DataGridView dgv)
     {
-        var filas = await Program.ConsolidadoService
+        var consolidado = await Program.ConsolidadoService
             .GenerarConsolidadoAsync(añoCadete, _bimestre, _añoAcademico);
+            
+        var filas = consolidado.Filas;
 
         foreach (var f in filas)
             if (!_actitudesMil.ContainsKey(f.CadeteDNI))
@@ -114,15 +116,8 @@ public partial class FormReporteBimestral : Form
             int[] ptosSemana = new int[_semanas.Count];
             for (int i = 0; i < _semanas.Count; i++)
             {
-                int pts = i switch
-                {
-                    0 => f.PtosSemana1,
-                    1 => f.PtosSemana2,
-                    2 => f.PtosSemana3,
-                    3 => f.PtosSemana4,
-                    4 => f.PtosSemana5,
-                    _ => 0
-                };
+                int semanaNro = _semanas[i].NroSemana;
+                int pts = f.PuntosPorSemana.TryGetValue(semanaNro, out var valor) ? valor : 0;
                 ptosSemana[i] = pts;
                 row.Cells[colIdx++].Value = pts;
             }

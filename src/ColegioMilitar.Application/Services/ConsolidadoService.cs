@@ -20,7 +20,7 @@ public class ConsolidadoService
         _ctx       = ctx;
     }
 
-    public async Task<IEnumerable<FilaConsolidadoDto>> GenerarConsolidadoAsync(
+    public async Task<ConsolidadoBimestreDto> GenerarConsolidadoAsync(
         int añoCadete, int bimestre, int añoAcademico)
     {
         var cadetes   = await _cadetes.GetByAñoAsync(añoCadete);
@@ -30,8 +30,19 @@ public class ConsolidadoService
         var actitudes = await _ctx.ActitudesMilitares
             .Where(a => a.Bimestre == bimestre && a.AñoAcademico == añoAcademico)
             .ToListAsync();
+            
+        var semanasConfig = await _ctx.BimestresConfig
+            .Where(b => b.Bimestre == bimestre && b.Año == añoAcademico)
+            .OrderBy(b => b.NroSemana)
+            .ToListAsync();
+            
+        var semanasDto = semanasConfig.Select(s => new SemanaInfoDto 
+        { 
+            NroSemana = s.NroSemana, 
+            NombreSemana = s.NombreSemana 
+        }).ToList();
 
-        return cadetes.Select(cadete =>
+        var filas = cadetes.Select(cadete =>
         {
             var sc = sanciones.Where(s => s.CadeteDNI == cadete.DNI).ToList();
             int PtosSemana(int sem) => sc
@@ -39,20 +50,28 @@ public class ConsolidadoService
                 .Sum(s => s.EsPierdeSalida ? 20 : s.PuntosAplicados);
             var actitud = actitudes.FirstOrDefault(a => a.CadeteDNI == cadete.DNI);
 
+            var dictPuntos = new Dictionary<int, int>();
+            foreach (var sem in semanasConfig)
+            {
+                dictPuntos[sem.NroSemana] = PtosSemana(sem.NroSemana);
+            }
+
             return new FilaConsolidadoDto
             {
                 CadeteDNI        = cadete.DNI,
                 ApellidosNombres = cadete.ApellidosNombres,
                 Año              = cadete.Año,
                 Division         = cadete.Division,
-                PtosSemana1      = PtosSemana(1),
-                PtosSemana2      = PtosSemana(2),
-                PtosSemana3      = PtosSemana(3),
-                PtosSemana4      = PtosSemana(4),
-                PtosSemana5      = PtosSemana(5),
+                PuntosPorSemana  = dictPuntos,
                 ActitudMilitar   = actitud?.NotaActitud ?? 0m
             };
-        });
+        }).ToList();
+        
+        return new ConsolidadoBimestreDto
+        {
+            Semanas = semanasDto,
+            Filas = filas
+        };
     }
 
     /// <summary>
