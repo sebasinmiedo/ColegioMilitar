@@ -19,6 +19,7 @@ public class SancionRepository : IRepository<Sancion, int>
 
     public async Task<IEnumerable<Sancion>> GetAllAsync() =>
     await _ctx.Sanciones
+        .AsNoTracking()
         .Include(s => s.Cadete)
         .Include(s => s.Supervisor)
         .Include(s => s.Castigo)
@@ -28,6 +29,7 @@ public class SancionRepository : IRepository<Sancion, int>
     /// <summary>Todas las sanciones de una semana específica.</summary>
     public async Task<IEnumerable<Sancion>> GetBySemanaBimestreAsync(int semana) =>
         await _ctx.Sanciones
+            .AsNoTracking()
             .Include(s => s.Cadete)
             .Include(s => s.Supervisor)
             .Include(s => s.Castigo)
@@ -77,6 +79,7 @@ public class SancionRepository : IRepository<Sancion, int>
         var fechaMax = fechasBimestre.Max(b => b.FechaFin);
 
         return await _ctx.Sanciones
+            .AsNoTracking()
             .Include(s => s.Cadete)
             .Include(s => s.Castigo)
             .Where(s => s.Cadete.Año == añoCadete

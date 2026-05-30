@@ -27,6 +27,7 @@ partial class Form1
         tabPage4           = new TabPage();
         tabPage5           = new TabPage();
         tabSalida          = new TabPage();
+        tabReporteBimestral = new TabPage();
         pnlSemanas3        = new Panel();
         pnlSemanas4        = new Panel();
         pnlSemanas5        = new Panel();
@@ -137,7 +138,10 @@ partial class Form1
         // ── TabControl ────────────────────────────────────────────────────
         tabControl.Dock = DockStyle.Fill;
         tabControl.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-        tabControl.Controls.AddRange(new TabPage[] { tabPage3, tabPage4, tabPage5, tabSalida });
+        tabControl.Controls.AddRange(new TabPage[] { tabPage3, tabPage4, tabPage5, tabSalida, tabReporteBimestral });
+
+        tabReporteBimestral.Text = "  REPORTE BIMESTRAL  ";
+        tabReporteBimestral.Padding = new Padding(5);
 
         // ── Form ──────────────────────────────────────────────────────────
         AutoScaleDimensions = new SizeF(7F, 15F);
@@ -175,6 +179,7 @@ partial class Form1
     private ComboBox          cmbBimestre;
     private TabControl        tabControl;
     private TabPage           tabPage3, tabPage4, tabPage5, tabSalida;
+    private TabPage           tabReporteBimestral;
     private Panel             pnlSemanas3, pnlSemanas4, pnlSemanas5, pnlSemanasSalida;
     private DataGridView      dgv3, dgv4, dgv5;
     private Panel             pnlSalidaContent, pnlResumenSalida;

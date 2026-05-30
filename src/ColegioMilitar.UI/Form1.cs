@@ -12,6 +12,8 @@ public partial class Form1 : Form
     private int _semanaActiva4     = 0;
     private int _semanaActiva5     = 0;
     private int _semanaActivaSalida = 0;
+    
+    private FormReporteBimestral? _reporteBimestral;
 
     private List<BimestreConfig> _semanasActuales = new();
     private List<FilaPtosSalidaDto> _datosSalida = new();
@@ -35,8 +37,25 @@ public partial class Form1 : Form
         await CargarBotonesSemanasAsync();
         PositionarEnSemanaActual();
         await RefrescarTodosAsync();
+        CargarReporteBimestralAsync();
     }
 
+    private void CargarReporteBimestralAsync()
+    {
+        tabReporteBimestral.Controls.Clear();
+        _reporteBimestral = null;
+
+        _reporteBimestral = new FormReporteBimestral(
+            _bimestreActivo, _añoAcademico, _semanasActuales);
+
+        _reporteBimestral.TopLevel = false;
+        _reporteBimestral.FormBorderStyle = FormBorderStyle.None;
+        _reporteBimestral.Dock = DockStyle.Fill;
+
+        tabReporteBimestral.Controls.Add(_reporteBimestral);
+        _reporteBimestral.Show();
+        _ = _reporteBimestral.CargarDatosAsync();
+    }
 
     private void ConfigurarBotonesAcciones()
     {
@@ -399,6 +418,7 @@ public partial class Form1 : Form
         await CargarBotonesSemanasAsync();
         PositionarEnSemanaActual();
         await RefrescarTodosAsync();
+        CargarReporteBimestralAsync();
     }
 
     private void RebuildSemanaButtons(Panel pnl, EventHandler handler, bool incluirTodas = true)
@@ -727,6 +747,8 @@ public partial class Form1 : Form
         }
 
         await RefrescarTodosAsync();
+        if (_reporteBimestral is not null)
+            _ = _reporteBimestral.CargarDatosAsync();
     }
 
     private async Task RefrescarSalidaAsync(int semana)
@@ -800,7 +822,7 @@ public partial class Form1 : Form
                 f.Salida,
                 PtosNum = f.TotalPuntos + (f.CantidadPV > 0 ? 999 : 0)
             })
-            .OrderBy(f => f.PtosNum)
+            .OrderBy(f => f.ApellidosNombres)
             .Select((f, i) => new
             {
                 N = i + 1,
@@ -861,9 +883,87 @@ public partial class Form1 : Form
         form.Show(this);
     }
 
-    private void btnExportarExcel_Click(object sender, EventArgs e) =>
-        MessageBox.Show("Exportación a Excel — próximamente.",
-            "En desarrollo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    private async void btnExportarExcel_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            btnExportarExcel.Enabled = false;
+            
+            string templatesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Templates");
+            string escritorio = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            
+            var generator = new ColegioMilitar.Reports.ReportGeneratorService();
+
+            if (tabControl.SelectedTab == tabReporteBimestral)
+            {
+                // REPORTE BIMESTRAL
+                string plantillaBimestral = Path.Combine(templatesPath, "Plantilla_Consolidado.xlsx");
+                string salidaBimestral = Path.Combine(escritorio, $"Consolidado_Bimestre{_bimestreActivo}_{DateTime.Now:yyyyMMdd}.xlsx");
+                
+                var dataTercer = await Program.ConsolidadoService.GenerarConsolidadoAsync(3, _bimestreActivo, _añoAcademico);
+                var dataCuarto = await Program.ConsolidadoService.GenerarConsolidadoAsync(4, _bimestreActivo, _añoAcademico);
+                var dataQuinto = await Program.ConsolidadoService.GenerarConsolidadoAsync(5, _bimestreActivo, _añoAcademico);
+                
+                string nombreBimestre = _bimestreActivo switch { 1 => "I", 2 => "II", 3 => "III", 4 => "IV", _ => "" };
+                generator.GenerarReporteBimestral(plantillaBimestral, salidaBimestral, _bimestreActivo, 
+                    nombreBimestre, dataTercer, dataCuarto, dataQuinto);
+                    
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = salidaBimestral, UseShellExecute = true });
+            }
+            else
+            {
+                // REPORTE SEMANAL
+                int semanaExp = tabControl.SelectedTab == tabPage3 ? _semanaActiva3 :
+                                tabControl.SelectedTab == tabPage4 ? _semanaActiva4 :
+                                tabControl.SelectedTab == tabPage5 ? _semanaActiva5 :
+                                _semanaActivaSalida;
+                
+                var semanaConfig = _semanasActuales.FirstOrDefault(s => s.NroSemana == semanaExp);
+                string nombreSem = semanaConfig?.NombreSemana ?? "Todas";
+                
+                string plantillaSemanal = Path.Combine(templatesPath, "Plantilla_Registro_Sanciones.xlsx");
+                string salidaSemanal = Path.Combine(escritorio, $"Sanciones_Bimestre{_bimestreActivo}_Semana{nombreSem.Replace("/", "-")}_{DateTime.Now:yyyyMMdd}.xlsx");
+                
+                var sancionesListBase = (semanaExp == 0)
+                    ? (await Program.SancionService.ListarTodosAsync()).ToList()
+                    : (await Program.SancionService.ListarPorSemanaAsync(semanaExp)).ToList();
+
+                var sancionesList = sancionesListBase;
+                
+                // Obtener todos los cadetes para que el reporte no excluya a los que no tienen sanción
+                var todosLosCadetes = await Program.Cadetes.GetAllAsync();
+                
+                // Si están exportando otra semana diferente a la visible en "Salida", forzamos refrescar datos Salida para obtener raciones correctas.
+                if (semanaExp != _semanaActivaSalida)
+                {
+                    await RefrescarSalidaAsync(semanaExp);
+                }
+
+                var racionesDto = new ReporteRacionesDto
+                {
+                    QuintoAño = new RacionesAñoDto { Vie = int.Parse(lblResumenVAnoVie.Text), Sab = int.Parse(lblResumenVAnoSab.Text), Dom = int.Parse(lblResumenVAnoDom.Text) },
+                    CuartoAño = new RacionesAñoDto { Vie = int.Parse(lblResumenIVAnoVie.Text), Sab = int.Parse(lblResumenIVAnoSab.Text), Dom = int.Parse(lblResumenIVAnoDom.Text) },
+                    TercerAño = new RacionesAñoDto { Vie = int.Parse(lblResumenIIIAVie.Text), Sab = int.Parse(lblResumenIIIASab.Text), Dom = int.Parse(lblResumenIIIADom.Text) }
+                };
+                
+                var salidaQuinto = _datosSalida.Where(f => f.Año == 5);
+                var salidaCuarto = _datosSalida.Where(f => f.Año == 4);
+                var salidaTercer = _datosSalida.Where(f => f.Año == 3);
+
+                generator.GenerarReporteSemanal(plantillaSemanal, salidaSemanal, semanaExp, nombreSem, sancionesList, salidaQuinto, salidaCuarto, salidaTercer, racionesDto, todosLosCadetes);
+
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = salidaSemanal, UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error exportando a Excel:\n{ex.Message}\n{ex.StackTrace}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnExportarExcel.Enabled = true;
+        }
+    }
 
     private void btnMantenimiento_Click(object sender, EventArgs e) =>
         new FormMantenimiento().Show(this);
@@ -873,6 +973,7 @@ public partial class Form1 : Form
         new FormConfigBimestre().ShowDialog(this);
         await CargarBotonesSemanasAsync();
         await RefrescarTodosAsync();
+        CargarReporteBimestralAsync();
     }
 
     private async void btnRefrescar_Click(object sender, EventArgs e)
