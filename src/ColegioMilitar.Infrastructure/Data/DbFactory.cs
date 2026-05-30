@@ -12,9 +12,14 @@ public static class DbFactory
 
     public static void Initialize(string? dbPath = null)
     {
-        var path = dbPath ?? Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "ColegioMilitar.db");
+        var path = dbPath;
+        if (path == null)
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var appFolder = Path.Combine(appData, "ColegioMilitar");
+            Directory.CreateDirectory(appFolder);
+            path = Path.Combine(appFolder, "ColegioMilitar.db");
+        }
 
         _connectionString = $"Data Source={path}";
     }
