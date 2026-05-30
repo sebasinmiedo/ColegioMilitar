@@ -883,13 +883,36 @@ public partial class Form1 : Form
         form.Show(this);
     }
 
+    private string ObtenerRutaPlantillasYCopiarSiEsNecesario()
+    {
+        var documentos = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var folderPlantillas = Path.Combine(documentos, "ColegioMilitar", "Plantillas");
+        Directory.CreateDirectory(folderPlantillas);
+
+        string appTemplatesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Templates");
+        
+        string[] plantillas = { "Plantilla_Consolidado.xlsx", "Plantilla_Registro_Sanciones.xlsx" };
+        foreach (var plantilla in plantillas)
+        {
+            var origen = Path.Combine(appTemplatesPath, plantilla);
+            var destino = Path.Combine(folderPlantillas, plantilla);
+            
+            if (File.Exists(origen) && !File.Exists(destino))
+            {
+                File.Copy(origen, destino);
+            }
+        }
+        
+        return folderPlantillas;
+    }
+
     private async void btnExportarExcel_Click(object sender, EventArgs e)
     {
         try
         {
             btnExportarExcel.Enabled = false;
             
-            string templatesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Templates");
+            string templatesPath = ObtenerRutaPlantillasYCopiarSiEsNecesario();
             string escritorio = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             
             var generator = new ColegioMilitar.Reports.ReportGeneratorService();
